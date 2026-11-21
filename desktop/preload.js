@@ -1,0 +1,76 @@
+'use strict';
+// Gives the shared web UI the same "Android" bridge it uses on phones.
+const { ipcRenderer } = require('electron');
+
+const call = (name, ...args) => ipcRenderer.sendSync('sync', name, ...args);
+const later = name => (cb, ...args) => {
+  ipcRenderer.invoke('async', name, ...args)
+    .catch(e => ({ status: 0, body: String(e && e.message || e) }))
+    .then(r => window.__cb(cb, typeof r === 'string' ? r : JSON.stringify(r)));
+};
+
+function showToast(text) {
+  const el = document.createElement('div');
+  el.className = 'desk-toast';
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// Live download numbers for the update card.
+ipcRenderer.on('updProgress', (e, p) => { if (window.onUpdProgress) window.onUpdProgress(p); });
+
+// Yerel ağ eşitleme: telefondan gelen eşitleme isteği arayüzde birleştirilir.
+ipcRenderer.on('lanReq', (e, rid, body) => {
+  if (window.__lanReq) window.__lanReq(rid, body);
+  else call('lanReply', rid, '{"ok":false,"error":"busy"}');
+});
+
+window.Android = {
+  lanInfo: () => call('lanInfo'),
+  lanIps: () => call('lanIps'),
+  lanReply: (rid, json) => call('lanReply', rid, json),
+  hasPhotoLocal: id => call('hasPhotoLocal', id),
+  lanServe: later('lanServe'),
+  lanStop: later('lanStop'),
+  lanResetKey: later('lanResetKey'),
+  lanHttp: later('lanHttp'),
+  lanGetPhoto: later('lanGetPhoto'),
+  lanPutPhoto: later('lanPutPhoto'),
+  lanFind: later('lanFind'),
+  platform: () => 'desktop',
+  load: () => call('load'),
+  save: s => call('save', s),
+  photoUrl: id => call('photoUrl', id),
+  deletePhotoLocal: id => call('deletePhotoLocal', id),
+  pickPhoto: later('pickPhoto'),
+  http: later('http'),
+  updateCheck: later('updateCheck'),
+  updateApply: later('updateApply'),
+  updateProgress: () => true,
+  restartApp: () => call('restartApp'),
+  otaOk: () => call('otaOk'),
+  notifyNow: (title, body, docId) => call('notifyNow', title, body, docId),
+  httpTok: later('httpTok'),
+  uploadPhoto: later('uploadPhoto'),
+  downloadPhoto: later('downloadPhoto'),
+  getSync: () => call('getSync'),
+  setSync: s => call('setSync', s),
+  signIn: later('signIn'),
+  uid: () => call('uid'),
+  setLang: l => call('setLang', l),
+  deviceLang: () => call('deviceLang'),
+  takeOpenDoc: () => call('takeOpenDoc'),
+  share: text => { call('copy', text); showToast(window.t ? window.t('copied_share') : 'Copied'); },
+  openMap: q => call('openMap', q),
+  closeWindow: () => call('closeWindow'),
+  quitApp: () => call('quitApp'),
+  dial: () => {},
+  copy: text => call('copy', text),
+  paste: () => call('paste'),
+  toast: showToast,
+  setBarColor: () => {},
+  version: () => call('version'),
+  isFullScreen: () => call('isFullScreen'),
+  toggleFullScreen: () => call('toggleFullScreen')
+};

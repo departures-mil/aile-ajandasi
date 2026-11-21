@@ -1,0 +1,10 @@
+{
+ "code": 31,
+ "version": "4.8",
+ "notes": "4.8: Bilgisayarda güncellemeler artık GitHub'dan geliyor (daha hızlı ve güvenilir); aile hesabına girmeden de güncellenir. İndirirken yüzde, MB, kalan ve hız görünür. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-31.gz",
+ "bytes": 255999,
+ "sha": "50eeca6be17bd3021910d12b927a3bf58399287c7f4902d1b4e9447d7bab721b",
+ "sig": "MEUCIQCUMDa85lhTCa2drlMgi1CnOxCN2eOqIeLF4xImWe9LZQIgL0d2NIRti00JWzE4ICTGY0Un3PQ7DDmNvYnQ/4/1zQM=",
+ "published": 1795292485421
+}
