@@ -1,10 +1,10 @@
 {
- "code": 31,
- "version": "4.8",
- "notes": "4.8: Bilgisayarda güncellemeler artık GitHub'dan geliyor (daha hızlı ve güvenilir); aile hesabına girmeden de güncellenir. İndirirken yüzde, MB, kalan ve hız görünür. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-31.gz",
- "bytes": 255999,
- "sha": "50eeca6be17bd3021910d12b927a3bf58399287c7f4902d1b4e9447d7bab721b",
- "sig": "MEUCIQCUMDa85lhTCa2drlMgi1CnOxCN2eOqIeLF4xImWe9LZQIgL0d2NIRti00JWzE4ICTGY0Un3PQ7DDmNvYnQ/4/1zQM=",
- "published": 1795292485421
+ "code": 32,
+ "version": "4.9",
+ "notes": "4.9: Ayarların sonuna 'Admin ile iletişime geç' bölümü eklendi; öneri ve isteklerinizi doğrudan yöneticiye gönderebilirsiniz. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-32.gz",
+ "bytes": 257483,
+ "sha": "4d1329842fb22c251d9cc9968e1aaf7519b336d4a231a578d4772ed3f7b40c42",
+ "sig": "MEUCIEs3pQuf0VRieEkpDGOxtbkRwBSjHSif4CxipxK7+5/aAiEAwSUtheMp05ErbQ8BGr5oROVhlcmWyotOiqCEl32vRRo=",
+ "published": 1795294827865
 }

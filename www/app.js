@@ -1327,7 +1327,39 @@ function renderSettings() {
       <div class="kv"><span>${esc(t('app_name'))}</span><b>v${esc(N.version())}</b></div>
       ${updateStatusHtml()}
       <p class="muted small">${esc(t('upd_auto_note'))}</p>
+    </section>
+    <section class="card pad">
+      <h4>✉️ ${esc(t('ct_title'))}</h4>
+      <p class="muted small">${esc(t('ct_desc'))}</p>
+      ${field(t('ct_name'), `<input id="ctname" dir="auto" maxlength="80" value="${esc(S.me.name || '')}">`)}
+      ${field(t('ct_mail'), `<input id="ctmail" dir="ltr" maxlength="120" inputmode="email" placeholder="ornek@mail.com">`)}
+      ${field(t('ct_msg'), `<textarea id="ctmsg" dir="auto" maxlength="5000" rows="5"></textarea>`)}
+      <button class="btn primary wide" data-act="ctsend">✉️ ${esc(t('ct_send'))}</button>
     </section>`;
+}
+
+/* ---------- Contact the admin ----------
+   Messages go to the administrator's mailbox through FormSubmit; the address is not shown. */
+const ADMIN_TO = atob('').split('').reverse().join('');
+let ctBusy = false;
+async function sendContact() {
+  if (ctBusy) return;
+  const v = id => ((document.getElementById(id) || {}).value || '').trim();
+  const msg = v('ctmsg'), mail = v('ctmail'), name = v('ctname');
+  if (!msg) { N.toast(t('ct_empty')); return; }
+  if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { N.toast(t('ct_badmail')); return; }
+  const body = { _subject: 'Ajandam: yeni mesaj', _template: 'table', _captcha: 'false', Ad: name || '-', Mesaj: msg, Surum: N.version(), Cihaz: N.platform ? N.platform() : 'android', Dil: S.settings.lang };
+  if (mail) { body.email = mail; body._replyto = mail; }
+  ctBusy = true; N.toast(t('ct_sending'));
+  try {
+    const r = await nat('http', 'POST', 'https://formsubmit.co/ajax/' + ADMIN_TO, JSON.stringify(body), false);
+    let j = {}; try { j = JSON.parse(r.body || '{}'); } catch (e) {}
+    if ((r.status >= 200 && r.status < 300 && String(j.success) !== 'false') || /activat/i.test(j.message || '')) {
+      const el = document.getElementById('ctmsg'); if (el) el.value = '';
+      N.toast(t('ct_sent'));
+    } else N.toast(t('ct_fail'));
+  } catch (e) { N.toast(t('ct_fail')); }
+  ctBusy = false;
 }
 
 /* ---------- Lists manager ---------- */
@@ -2503,6 +2535,7 @@ document.addEventListener('click', async e => {
     }
     case 'mclose': closeModal(); break;
     case 'syncnow': syncNow(); break;
+    case 'ctsend': sendContact(); break;
     case 'lan': LanCore.open(); break;
     case 'clearq': ui.q = ''; render(); break;
     case 'updcheck': checkUpdate(true); break;
