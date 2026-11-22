@@ -32,8 +32,8 @@ public final class Updater {
 
     public static final String PUBKEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMdYJKGu2BpJT/N9oK9TMsUfmeJqMStUAtvlsA9wHYfk9Z6cJo5zdvTBSJpChyTNe3nGbSP/DJI7YTrnr2zij7w==";
     /** Code of the www bundled in this APK's assets (bumped together with the published bundle it matches). */
-    public static final int BUILTIN_WWW_CODE = 30;
-    public static final String BUILTIN_WWW_VERSION = "4.7";
+    public static final int BUILTIN_WWW_CODE = 35;
+    public static final String BUILTIN_WWW_VERSION = "5.2";
 
     public static File otaDir(Context c) { return new File(c.getFilesDir(), "ota"); }
     static File otaNew(Context c) { return new File(c.getFilesDir(), "ota-new"); }
@@ -93,6 +93,33 @@ public final class Updater {
         return f.isFile() ? f : null;
     }
 
+    /* ---------- GitHub (5.2 / APK 22): güncellemeler önce GitHub'dan, olmazsa ailenin Firebase'inden ---------- */
+    static final String GH = "https://raw.githubusercontent.com/departures-mil/aile-ajandasi/main/guncelleme/";
+
+    static byte[] ghGet(String name) throws Exception {
+        java.net.HttpURLConnection con = (java.net.HttpURLConnection) new java.net.URL(GH + name).openConnection();
+        con.setConnectTimeout(20000);
+        con.setReadTimeout(90000);
+        con.setUseCaches(false);
+        try {
+            int st = con.getResponseCode();
+            if (st != 200) throw new Exception("HTTP " + st);
+            return Store.readAll(con.getInputStream());
+        } finally { con.disconnect(); }
+    }
+
+    /** GitHub bildirgesi (yeniyse) ya da ailenin Firebase'indeki; "_gh" alanı kaynağı söyler. */
+    static JSONObject upd(Context c) throws Exception {
+        JSONObject g = null;
+        try { g = new JSONObject(new String(ghGet("upd_latest.json?t=" + System.currentTimeMillis()), "UTF-8")); g.put("_gh", true); }
+        catch (Exception ignored) { g = null; }
+        JSONObject f = null;
+        try { f = familyUpd(c); } catch (Exception e) { if (g == null) throw e; }
+        if (g == null) return f;
+        if (f != null && f.optInt("code", 0) > g.optInt("code", 0) && f.optInt("apkCode", 0) >= g.optInt("apkCode", 0)) return f;
+        return g;
+    }
+
     /* ---------- Firestore ---------- */
 
     static JSONObject familyUpd(Context c) throws Exception {
@@ -141,14 +168,14 @@ public final class Updater {
 
     public static String check(Context c) {
         try {
-            JSONObject u = familyUpd(c);
+            JSONObject u = upd(c);
             int code = u.optInt("code", 0), apkCode = u.optInt("apkCode", 0);
             boolean needApk = apkCode > nativeCode(c);
             boolean available = needApk || code > wwwCode(c);
             String version = needApk ? u.optString("apkVersion", u.optString("version")) : u.optString("version");
             return new JSONObject().put("ok", true).put("available", available).put("needApk", needApk)
                 .put("version", version).put("code", code).put("notes", u.optString("notes", ""))
-                .put("current", wwwVersion(c)).toString();
+                .put("current", wwwVersion(c)).put("size", needApk ? u.optInt("apkBytes", 0) : u.optInt("bytes", 0)).toString();
         } catch (Exception e) {
             return err(e);
         }
@@ -156,10 +183,10 @@ public final class Updater {
 
     public static String apply(Context c) {
         try {
-            JSONObject u = familyUpd(c);
+            JSONObject u = upd(c);
             int code = u.optInt("code", 0);
             if (code <= 0) throw new Exception("no update");
-            byte[] gz = parts(c, "upd_b" + code, u.optInt("parts", 1));
+            byte[] gz = u.optBoolean("_gh") ? ghGet(u.getString("file")) : parts(c, "upd_b" + code, u.optInt("parts", 1));
             if (!sha256(gz).equals(u.optString("sha"))) throw new Exception("checksum");
             if (!verify(gz, u.optString("sig"))) throw new Exception("signature");
             byte[] raw = Store.readAll(new GZIPInputStream(new ByteArrayInputStream(gz)));
@@ -186,7 +213,7 @@ public final class Updater {
 
     public static String apk(Context c) {
         try {
-            JSONObject u = familyUpd(c);
+            JSONObject u = upd(c);
             int apkCode = u.optInt("apkCode", 0);
             if (apkCode <= nativeCode(c)) throw new Exception("no update");
             if (Build.VERSION.SDK_INT >= 26 && !c.getPackageManager().canRequestPackageInstalls()) {
@@ -195,7 +222,7 @@ public final class Updater {
                 c.startActivity(i);
                 throw new Exception("install permission");
             }
-            byte[] apk = parts(c, "upd_apk" + apkCode, u.optInt("apkParts", 1));
+            byte[] apk = u.optBoolean("_gh") && u.has("apkFile") ? ghGet(u.getString("apkFile")) : parts(c, "upd_apk" + apkCode, u.optInt("apkParts", 1));
             if (!sha256(apk).equals(u.optString("apkSha"))) throw new Exception("checksum");
             if (!verify(apk, u.optString("apkSig"))) throw new Exception("signature");
             File f = new File(c.getCacheDir(), "update.apk");

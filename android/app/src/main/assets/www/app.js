@@ -902,6 +902,10 @@ window.onUpdProgress = p => {
 /** Bundle size for the phone card (the desktop check already sends it). */
 async function updSizeFromManifest() {
   try {
+    const g = await nat('http', 'GET', 'https://raw.githubusercontent.com/departures-mil/aile-ajandasi/main/guncelleme/upd_latest.json', '', false);
+    if (g && g.status === 200) { const j = JSON.parse(g.body); if (j.bytes) return j.bytes; }
+  } catch (e) { /* GitHub yoksa aile kopyası */ }
+  try {
     const r = await nat('http', 'GET', `${fsBase()}/${famPath('photos/upd_latest')}`, '', true);
     if (!r || r.status !== 200) return 0;
     const l = JSON.parse(JSON.parse(r.body).fields.data.stringValue);

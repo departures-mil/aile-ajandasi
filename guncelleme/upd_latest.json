@@ -1,10 +1,10 @@
 {
- "code": 34,
- "version": "5.1",
- "notes": "5.1: Bilgisayardaki Ajandam, yeni güncellemeleri ailenin telefonlarına da kendiliğinden ulaştırır (telefonlar ⬆ Güncelle ile alır). Bakım sekmesi ve admin iletişimi bu sürümde de var. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-34.gz",
- "bytes": 263177,
- "sha": "62b7509cda35f921c38ca04c3aa362baee5e1127739672f14da6a7f32269caed",
- "sig": "MEUCIQDYoZofk4dMtcxeCEMImM6Hm1fTDK6/gd8KaL7Q4sky6gIgcKs57RYNr9Zf9Ibx63wxwhknajKYiZZFVToQt+I8tiA=",
- "published": 1795318037924
+ "code": 35,
+ "version": "5.2",
+ "notes": "5.2: Telefon güncellemeleri artık doğrudan GitHub'dan iner (aile bağlantısı gerekmez); boyut, kalan MB ve hız gösterilir. Yeni telefon uygulaması (APK 5.2) bunun için gerekli. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-35.gz",
+ "bytes": 263329,
+ "sha": "3c5ad447ecb863b9a37f2a15ac2b2a000a026d334426229a137e4041dfdaaa24",
+ "sig": "MEQCIDCTNmNavO0GNq3VRawFQGHo73Y6RUEyORi23Mfcqz1EAiAmbPvStMC3KiPXN/ST/rEFCV3IJ70zm4UXX7DgSfL0EQ==",
+ "published": 1795318281485
 }
