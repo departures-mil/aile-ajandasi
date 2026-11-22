@@ -214,7 +214,8 @@ async function http(method, url, body, contentType, token, timeoutMs) {
     if (body) headers['Content-Type'] = contentType || 'application/json; charset=utf-8';
     // FormSubmit, Referer'sız isteği reddeder; etkinleştirilmiş site gönderilir
     if (/^https:\/\/formsubmit\.co\//.test(url)) { headers.Accept = 'application/json'; headers.Referer = 'https://formsubmit.co/'; headers.Origin = 'https://formsubmit.co'; }
-    const r = await net.fetch(url, { method, headers, body: body || undefined, signal: ctl.signal });
+    // FormSubmit isteği Node fetch ile (Chromium ağ katmanı Referer başlığını değiştirebilir)
+    const r = await (/^https:\/\/formsubmit\.co\//.test(url) ? fetch : net.fetch)(url, { method, headers, body: body || undefined, signal: ctl.signal });
     return { status: r.status, body: await r.text() };
   } catch (e) {
     return { status: 0, body: ctl.signal.aborted ? 'timeout' : String(e && e.message || e) };

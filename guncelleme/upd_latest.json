@@ -1,10 +1,10 @@
 {
- "code": 38,
- "version": "5.5",
- "notes": "Ajandam 5.5: «Admin ile iletişime geç» düzeltildi — mesajlarınız artık yöneticiye güvenilir biçimde ulaşıyor. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-38.gz",
- "bytes": 274393,
- "sha": "450470f5479a840410daa900d200f3616e7b69b5eb4bd0553449b09701bbd35f",
- "sig": "MEUCIALiZRM64gfzrvVJSyl1viFpwm+Z6vsTXEKCtkQ3IXz9AiEAhZ3QWeOMeMa5pbpamMOapvmrtBQfjO/AM17i7MIWck4=",
- "published": 1795340362145
+ "code": 39,
+ "version": "5.6",
+ "notes": "Ajandam 5.6: «Admin ile iletişime geç» düzeltildi — mesajlarınız artık yöneticiye güvenilir biçimde ulaşıyor (e-posta kopyası da gidiyor). Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-39.gz",
+ "bytes": 274457,
+ "sha": "bd4e8f0cd58efef14be3d41bca9c8495a5a0b9640433bbfaa11806ee56caa284",
+ "sig": "MEUCIFoSF7sHEujgKKSC32pHwiM73TFT/HjLXoo0TtmMLvD9AiEA9hlp+a2ATJs6B4j18XvNPFEvjfWqsCrkPhXEEzmZh3g=",
+ "published": 1795340454082
 }
