@@ -373,3 +373,51 @@ Object.assign(I18N.ar, {
   elec_type_note_up: 'يعرض العداد الاستهلاك الإجمالي؛ زيادة القيمة استهلاك.',
   elec_warn: 'التنبيه قبل النفاد بكم يوم', elec_need_value: 'اكتب قيمة صحيحة.', elec_confirm_del: 'حذف هذه القراءة؟'
 });
+Object.assign(I18N.tr, {
+  tab_maint: 'Bakım', new_maint: 'Yeni bakım kaydı', edit_maint: 'Bakım kaydı', maint_add: 'Bakım takibi ekle',
+  maint_intro: 'Kombi, klima, araba gibi eşyaların bakımını takip edin. Bakım zamanı yaklaşınca bildirim gelir; kayıtlı ustayı tek tuşla arayabilirsiniz.',
+  maint_empty: 'Henüz bakım takibi eklenmedi.', maint_type: 'Ne için', maint_name: 'Adı', maint_name_ph: 'Örn. Salon kombisi, Yatak odası kliması, Araba',
+  maint_model: 'Marka / model (isteğe bağlı)', maint_model_ph: 'Örn. Vaillant ecoTEC, Toyota Corolla 2018', maint_need_name: 'Bir ad yazın.',
+  maint_t_boiler: 'Kombi', maint_t_ac: 'Klima', maint_t_car: 'Araba', maint_t_heater: 'Şofben / termosifon', maint_t_water: 'Su arıtma', maint_t_washer: 'Beyaz eşya', maint_t_other: 'Diğer',
+  maint_every: 'Ne sıklıkla bakım yapılır', maint_months: '{n} ay', maint_every_n: '{n} ayda bir bakım', maint_last_date: 'Son bakım tarihi',
+  maint_warn: 'Kaç gün önce hatırlatılsın', maint_every_km: 'Kaç km\'de bir', maint_last_km: 'Son bakımdaki km', maint_km_now: 'Şu anki km',
+  maint_km_next: 'Sonraki bakım {km} km\'de (her {every} km)', maint_km_every: 'Her {every} km\'de bir',
+  maint_tech: 'Usta', maint_tech_name: 'Ustanın adı / firma', maint_tech_ph: 'Örn. Ahmet Usta', maint_tech_wa: 'Bu numarada WhatsApp var', maint_no_tech: 'Kayıtlı usta yok — düzenleyerek ekleyebilirsiniz.',
+  maint_call: 'Ustayı ara', maint_next: 'Sonraki bakım', maint_last: 'Son bakım', maint_no_last: 'Son bakım tarihi girilmedi',
+  maint_left: '{n} gün kaldı', maint_today: 'Bakım günü bugün', maint_tomorrow: 'Bakım yarın', maint_late: 'Bakım {n} gün gecikti',
+  maint_done: 'Bakım yapıldı', maint_edit_serv: 'Bakımı düzelt', maint_serv_date: 'Bakım tarihi', maint_cost: 'Ücret (isteğe bağlı)',
+  maint_serv_note: 'Not', maint_serv_note_ph: 'Örn. filtre değişti, gaz dolumu', maint_hist: 'Yapılan bakımlar',
+  maint_confirm_del: 'Bu bakım kaydı silinsin mi?', maint_rem_ti: 'Bakım zamanı', maint_rem_body: 'Bakım tarihi: {date}'
+});
+Object.assign(I18N.en, {
+  tab_maint: 'Service', new_maint: 'New service item', edit_maint: 'Service item', maint_add: 'Add service tracking',
+  maint_intro: 'Track servicing for things like the boiler, air conditioner or car. You get a notification when service is due and can call the saved technician with one tap.',
+  maint_empty: 'No service tracking added yet.', maint_type: 'What for', maint_name: 'Name', maint_name_ph: 'e.g. Living room boiler, Bedroom AC, Car',
+  maint_model: 'Brand / model (optional)', maint_model_ph: 'e.g. Vaillant ecoTEC, Toyota Corolla 2018', maint_need_name: 'Enter a name.',
+  maint_t_boiler: 'Boiler', maint_t_ac: 'Air conditioner', maint_t_car: 'Car', maint_t_heater: 'Water heater', maint_t_water: 'Water filter', maint_t_washer: 'Appliance', maint_t_other: 'Other',
+  maint_every: 'How often is it serviced', maint_months: '{n} months', maint_every_n: 'Service every {n} months', maint_last_date: 'Last service date',
+  maint_warn: 'Remind how many days before', maint_every_km: 'Every how many km', maint_last_km: 'Km at last service', maint_km_now: 'Current km',
+  maint_km_next: 'Next service at {km} km (every {every} km)', maint_km_every: 'Every {every} km',
+  maint_tech: 'Technician', maint_tech_name: 'Technician / company', maint_tech_ph: 'e.g. Ahmet', maint_tech_wa: 'This number has WhatsApp', maint_no_tech: 'No technician saved — add one by editing.',
+  maint_call: 'Call technician', maint_next: 'Next service', maint_last: 'Last service', maint_no_last: 'No last service date entered',
+  maint_left: '{n} days left', maint_today: 'Service is due today', maint_tomorrow: 'Service is due tomorrow', maint_late: 'Service is {n} days overdue',
+  maint_done: 'Service done', maint_edit_serv: 'Edit service', maint_serv_date: 'Service date', maint_cost: 'Cost (optional)',
+  maint_serv_note: 'Note', maint_serv_note_ph: 'e.g. filter changed, gas refilled', maint_hist: 'Services done',
+  maint_confirm_del: 'Delete this service record?', maint_rem_ti: 'Service due', maint_rem_body: 'Service date: {date}'
+});
+Object.assign(I18N.ar, {
+  tab_maint: 'الصيانة', new_maint: 'صيانة جديدة', edit_maint: 'سجل الصيانة', maint_add: 'إضافة متابعة صيانة',
+  maint_intro: 'تابع صيانة الأجهزة مثل الكومبي والمكيف والسيارة. يصلك إشعار عند اقتراب موعد الصيانة، ويمكنك الاتصال بالفني المحفوظ بلمسة واحدة.',
+  maint_empty: 'لم تتم إضافة متابعة صيانة بعد.', maint_type: 'لأجل ماذا', maint_name: 'الاسم', maint_name_ph: 'مثلاً: كومبي الصالون، مكيف غرفة النوم، السيارة',
+  maint_model: 'الماركة / الموديل (اختياري)', maint_model_ph: 'مثلاً Vaillant ecoTEC، Toyota Corolla 2018', maint_need_name: 'اكتب اسماً.',
+  maint_t_boiler: 'كومبي', maint_t_ac: 'مكيف', maint_t_car: 'سيارة', maint_t_heater: 'سخان ماء', maint_t_water: 'فلتر ماء', maint_t_washer: 'أجهزة منزلية', maint_t_other: 'أخرى',
+  maint_every: 'كم مرة تتم الصيانة', maint_months: '{n} شهر', maint_every_n: 'صيانة كل {n} شهر', maint_last_date: 'تاريخ آخر صيانة',
+  maint_warn: 'التذكير قبل كم يوم', maint_every_km: 'كل كم كيلومتر', maint_last_km: 'الكيلومترات عند آخر صيانة', maint_km_now: 'الكيلومترات الحالية',
+  maint_km_next: 'الصيانة القادمة عند {km} كم (كل {every} كم)', maint_km_every: 'كل {every} كم',
+  maint_tech: 'الفني', maint_tech_name: 'اسم الفني / الشركة', maint_tech_ph: 'مثلاً: الأستاذ أحمد', maint_tech_wa: 'هذا الرقم عليه واتساب', maint_no_tech: 'لا يوجد فني محفوظ — أضفه من التعديل.',
+  maint_call: 'اتصل بالفني', maint_next: 'الصيانة القادمة', maint_last: 'آخر صيانة', maint_no_last: 'لم يُدخل تاريخ آخر صيانة',
+  maint_left: 'بقي {n} يوم', maint_today: 'موعد الصيانة اليوم', maint_tomorrow: 'موعد الصيانة غداً', maint_late: 'تأخرت الصيانة {n} يوم',
+  maint_done: 'تمت الصيانة', maint_edit_serv: 'تعديل الصيانة', maint_serv_date: 'تاريخ الصيانة', maint_cost: 'التكلفة (اختياري)',
+  maint_serv_note: 'ملاحظة', maint_serv_note_ph: 'مثلاً: تغيير الفلتر، تعبئة الغاز', maint_hist: 'الصيانات المنجزة',
+  maint_confirm_del: 'حذف سجل الصيانة هذا؟', maint_rem_ti: 'موعد الصيانة', maint_rem_body: 'تاريخ الصيانة: {date}'
+});

@@ -1,10 +1,10 @@
 {
- "code": 32,
- "version": "4.9",
- "notes": "4.9: Ayarların sonuna 'Admin ile iletişime geç' bölümü eklendi; öneri ve isteklerinizi doğrudan yöneticiye gönderebilirsiniz. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-32.gz",
- "bytes": 257483,
- "sha": "4d1329842fb22c251d9cc9968e1aaf7519b336d4a231a578d4772ed3f7b40c42",
- "sig": "MEUCIEs3pQuf0VRieEkpDGOxtbkRwBSjHSif4CxipxK7+5/aAiEAwSUtheMp05ErbQ8BGr5oROVhlcmWyotOiqCEl32vRRo=",
- "published": 1795294827865
+ "code": 33,
+ "version": "5.0",
+ "notes": "5.0: 🔧 Bakım sekmesi geri geldi (bakım hatırlatma, ustayı tek tuşla arama, bakım geçmişi) ve 'Admin ile iletişime geç' bölümüyle birleştirildi. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-33.gz",
+ "bytes": 262375,
+ "sha": "2296b7fa35f1d500107d65a20c4a17275881aca81d30a86b22cae0680646096b",
+ "sig": "MEYCIQCiBeD+FaJNoekCszNlVNmAM3UjkT19rjW1sPfe+ZHK0gIhAKOOJEdjLVLVzcqKH3s+ZuuaZ/ISnUBoG7ULBMuwRBz0",
+ "published": 1795316507994
 }
