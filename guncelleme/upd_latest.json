@@ -1,10 +1,10 @@
 {
- "code": 33,
- "version": "5.0",
- "notes": "5.0: 🔧 Bakım sekmesi geri geldi (bakım hatırlatma, ustayı tek tuşla arama, bakım geçmişi) ve 'Admin ile iletişime geç' bölümüyle birleştirildi. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-33.gz",
- "bytes": 262375,
- "sha": "2296b7fa35f1d500107d65a20c4a17275881aca81d30a86b22cae0680646096b",
- "sig": "MEYCIQCiBeD+FaJNoekCszNlVNmAM3UjkT19rjW1sPfe+ZHK0gIhAKOOJEdjLVLVzcqKH3s+ZuuaZ/ISnUBoG7ULBMuwRBz0",
- "published": 1795316507994
+ "code": 34,
+ "version": "5.1",
+ "notes": "5.1: Bilgisayardaki Ajandam, yeni güncellemeleri ailenin telefonlarına da kendiliğinden ulaştırır (telefonlar ⬆ Güncelle ile alır). Bakım sekmesi ve admin iletişimi bu sürümde de var. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-34.gz",
+ "bytes": 263177,
+ "sha": "62b7509cda35f921c38ca04c3aa362baee5e1127739672f14da6a7f32269caed",
+ "sig": "MEUCIQDYoZofk4dMtcxeCEMImM6Hm1fTDK6/gd8KaL7Q4sky6gIgcKs57RYNr9Zf9Ibx63wxwhknajKYiZZFVToQt+I8tiA=",
+ "published": 1795318037924
 }
