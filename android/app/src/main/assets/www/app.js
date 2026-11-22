@@ -9,7 +9,14 @@ window.__cb = (id, res) => { const f = cbs[id]; delete cbs[id]; if (f) f(res); }
 function nat(fn, ...args) {
   return new Promise(resolve => {
     const id = 'c' + (++cbSeq);
-    cbs[id] = s => { try { resolve(JSON.parse(s)); } catch (e) { resolve(s); } };
+    cbs[id] = s => {
+      let v; try { v = JSON.parse(s); } catch (e) { v = s; }
+      // Ayarlar > Kullanım Limitleri: Firestore isteklerini say
+      if ((fn === 'http' || fn === 'httpTok') && window.Kullanim && v && typeof v === 'object') {
+        try { Kullanim.ekle(Kullanim.cozumle(args[0], args[1], args[2], v.status, v.body)); } catch (e) {}
+      }
+      resolve(v);
+    };
     N[fn](id, ...args);
   });
 }
@@ -87,6 +94,10 @@ function load() {
       S = Object.assign(S, d);
       S.settings = Object.assign({ lang: '', onlyMine: false, showDone: false }, d.settings || {});
       S.sync = Object.assign({ members: [] }, d.sync || {});
+      if (S.sync.projectId === ESKI_ORTAK_PROJE && S.sync.fid !== YONETICI_AILE) {   // 5.4: ortak projeden çıkış
+        S.sync = Object.assign(S.sync, { enabled: false, apiKey: '', projectId: '', fid: '', lastError: '', ortakKesildi: true });
+        setTimeout(() => { try { save(); } catch (e) {} }, 0);
+      }
       S.tx = d.tx || {};
     }
   } catch (e) { console.error(e); }
@@ -1287,7 +1298,7 @@ function renderSettings() {
   const sy = S.sync;
   let syncHtml;
   if (!sy.enabled) {
-    syncHtml = `<p class="muted">${esc(t('sync_off_desc'))}</p>
+    syncHtml = `${sy.ortakKesildi ? `<p class="error">⚠️ ${esc(t('ortak_kesildi'))}</p>` : ''}<p class="muted">${esc(t('sync_off_desc'))}</p>
       <button class="btn primary wide" data-act="create">👑 ${esc(t('create_family'))}</button>
       <button class="btn wide" data-act="join">🔗 ${esc(t('join_family'))}</button>
       ${hasBuiltin() ? '' : `<button class="link" data-act="help">❓ ${esc(t('help_title'))}</button>`}`;

@@ -2,6 +2,7 @@
 /* eslint-disable */
 const I18N = {
   tr: {
+    ortak_kesildi: "Artık her aile kendi ücretsiz Firebase hesabını kullanıyor. Kayıtlarınız bu telefonda duruyor; eşitleme için ❓ yardımdaki adımlarla kendi hesabınızı kurup aileyi yeniden oluşturun.",
     logos_suggested: 'Önerilen', logos_all: 'Tüm logolar', logo_plain: 'Hiçbiri olmazsa sade logo:', page_of: 'Sayfa {n} / {total}', logo_none_plain: 'Uygun logo bulunamadı. Tüm logolara bakın ya da aşağıdan sade logo seçin.',
     window_view: 'Pencere görünümü', full_screen: 'Tam ekran',
     copied_share: 'Kopyalandı. WhatsApp\'a yapıştırıp gönderebilirsiniz.',
@@ -89,6 +90,7 @@ const I18N = {
     upd_apk: 'Bu sürüm uygulamanın çekirdeğini de yeniliyor; Android bir kez "Yükle" onayı ister.', upd_ready_title: 'Yeni sürüm hazır: {v}', upd_installing: 'Kuruluyor…', upd_retry: 'Tekrar dene', upd_got: 'İndirilen', upd_left: 'Kalan', upd_speed: 'Hız', upd_eta: 'Kalan süre', upd_per_s: '/sn'
   },
   en: {
+    ortak_kesildi: "Every family now uses its own free Firebase account. Your records are kept on this phone; to sync, set up your own account with the ❓ help steps and create the family again.",
     logos_suggested: 'Suggested', logos_all: 'All logos', logo_plain: 'If none fits, a plain logo:', page_of: 'Page {n} / {total}', logo_none_plain: 'No matching logo found. Browse all logos or pick a plain logo below.',
     window_view: 'Window view', full_screen: 'Full screen',
     copied_share: 'Copied. Paste it into WhatsApp to send.',
@@ -176,6 +178,7 @@ const I18N = {
     upd_apk: 'This version also renews the app core; Android asks once to confirm "Install".', upd_ready_title: 'New version ready: {v}', upd_installing: 'Installing…', upd_retry: 'Try again', upd_got: 'Downloaded', upd_left: 'Remaining', upd_speed: 'Speed', upd_eta: 'Time left', upd_per_s: '/s'
   },
   ar: {
+    ortak_kesildi: "أصبحت كل عائلة تستخدم حساب Firebase المجاني الخاص بها. سجلاتك محفوظة على هذا الهاتف؛ للمزامنة أنشئ حسابك باتباع خطوات ❓ المساعدة ثم أنشئ العائلة من جديد.",
     logos_suggested: 'المقترحة', logos_all: 'كل الشعارات', logo_plain: 'إذا لم يناسبك شيء، شعار بسيط:', page_of: 'صفحة {n} / {total}', logo_none_plain: 'لم يتم العثور على شعار مناسب. تصفح كل الشعارات أو اختر شعاراً بسيطاً أدناه.',
     window_view: 'عرض النافذة', full_screen: 'ملء الشاشة',
     copied_share: 'تم النسخ. الصقه في واتساب لإرساله.',
