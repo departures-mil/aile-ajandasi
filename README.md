@@ -16,3 +16,8 @@ eşitlenir; **kayıtlar bu depoda bulunmaz**.
 4.8 iki ayrı oturumda iki kez yapıldı: özel `departures-mil/ajandam` deposunda "Bakım sekmesi", bu depoda "masaüstü güncellemeleri GitHub'dan".
 4.9 (admin iletişimi) Bakım sekmesini içermediği için telefonda kaybolmuştu; 5.0'da ikisi birleştirildi. Geliştirme yalnız bu depoda yapılır;
 `ajandam` deposu eskidir (yalnız arşiv). Yayından önce `git pull` ve Firebase'deki `upd_latest` sürümünü kontrol edin.
+
+## 5.4 (2026-11-22)
+- Ayarlar > Kullanım Limitleri (`www/kullanim.js` = duyurular/istemci/kullanim.js, `www/kullanim-baslat.js`); `nat('http')` cevapları sayılır.
+- Ortak Firebase projesi (`aileajandasi-f65c9`) programdan çıkarıldı: her aile kendi ücretsiz hesabını kurar (❓ yardım / duyurular/firebase-kurulum.md).
+  Eski ortak projede yalnız yöneticinin ailesi (`YONETICI_AILE` = R69ZH34686) kalır; diğer ailelerin eşitlemesi kapatılır, kayıtları telefonda kalır.
