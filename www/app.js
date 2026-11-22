@@ -1377,9 +1377,18 @@ async function sendContact() {
   if (mail) { body.email = mail; body._replyto = mail; }
   ctBusy = true; N.toast(t('ct_sending'));
   try {
-    const r = await nat('http', 'POST', 'https://formsubmit.co/ajax/' + ADMIN_TO, JSON.stringify(body), false);
-    let j = {}; try { j = JSON.parse(r.body || '{}'); } catch (e) {}
-    if ((r.status >= 200 && r.status < 300 && String(j.success) !== 'false') || /activat/i.test(j.message || '')) {
+    // 5.5: iki bağımsız kanal — yöneticinin mesaj kutusu (Firestore "mesajlar", yalnızca ekleme) + e-posta kopyası (FormSubmit).
+    // Biri kabul ederse mesaj ulaşmış sayılır.
+    const F = v => ({ stringValue: String(v || '').slice(0, 4000) });
+    const fields = { mesaj: F(msg), konu: F('Ajandam · Mesaj'), dil: F(S.settings.lang), surum: F(N.version()), platform: F('Ajandam · ' + (N.platform ? N.platform() : 'android')), zaman: { timestampValue: new Date().toISOString() } };
+    if (name) fields.ad = F(name);
+    if (mail) fields.iletisim = F(mail);
+    const [r, q] = await Promise.all([
+      nat('http', 'POST', 'https://formsubmit.co/ajax/' + ADMIN_TO, JSON.stringify(body), false),
+      nat('http', 'POST', 'https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA', JSON.stringify({ fields }), false),
+    ]);
+    let j = {}; try { j = JSON.parse((r && r.body) || '{}'); } catch (e) {}
+    if ((q && q.status >= 200 && q.status < 300) || (r && r.status >= 200 && r.status < 300 && String(j.success) === 'true')) {
       const el = document.getElementById('ctmsg'); if (el) el.value = '';
       N.toast(t('ct_sent'));
     } else N.toast(t('ct_fail'));

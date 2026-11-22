@@ -1,10 +1,10 @@
 {
   "name": "aile-ajandasi",
   "productName": "Ajandam",
-  "version": "5.4.0",
+  "version": "5.5.0",
   "description": "Ajandam masaüstü",
   "main": "main.js",
   "author": "Aile",
   "license": "UNLICENSED",
-  "buildCode": 37
+  "buildCode": 38
 }
