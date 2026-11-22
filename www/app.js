@@ -187,6 +187,7 @@ function catIcon(c) {
 function docTitle(d) {
   if (d.kind === 'net') return d.name || t('tab_net');
   if (d.kind === 'elec') return d.name || t('tab_elec');
+  if (d.kind === 'maint') return d.name || t('tab_maint');
   if (d.title) return tx(d.title);
   if (d.kind === 'appt') {
     const parts = [lstName(lst(d.doctor)), lstName(lst(d.place))].filter(Boolean);
@@ -205,6 +206,7 @@ function computeAl(d) {
   if (d.kind === 'lst') return undefined;
   if (d.kind === 'net') return netAl(d);
   if (d.kind === 'elec') return elecAl(d);
+  if (d.kind === 'maint') return maintAl(d);
   const times = [];
   if (!d.done) {
     if (d.when) (d.rem || []).forEach(m => times.push(d.when - m * 60000));
@@ -557,7 +559,7 @@ function render() {
   if (top) { renderScreen(top); return; }
   const tabs = [
     ['agenda', '📅', t('tab_agenda')], ['health', '🩺', t('tab_health')], ['visits', '🏠', t('tab_visits')],
-    ['shop', '🛒', t('tab_shop')], ['tasks', '✅', t('tab_tasks')], ['net', '📶', t('tab_net')], ['elec', '⚡', t('tab_elec')]
+    ['shop', '🛒', t('tab_shop')], ['tasks', '✅', t('tab_tasks')], ['net', '📶', t('tab_net')], ['elec', '⚡', t('tab_elec')], ['maint', '🔧', t('tab_maint')]
   ];
   const qFocus = document.activeElement && document.activeElement.id === 'q' ? document.activeElement.selectionStart : null;
   app().innerHTML = `
@@ -614,12 +616,13 @@ function isFinished(d) { return !!d.done && (!d.when || d.when < Date.now()); }
 
 function dayKey(ms) { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); }
 
-const TAB_KINDS = { agenda: null, health: ['appt'], visits: ['visit'], shop: ['shop'], tasks: ['task'], net: ['net'], elec: ['elec'] };
+const TAB_KINDS = { agenda: null, health: ['appt'], visits: ['visit'], shop: ['shop'], tasks: ['task'], net: ['net'], elec: ['elec'], maint: ['maint'] };
 
 /** Every tab starts with a search box; while something is typed the tab shows what matches instead. */
 function renderTab() {
   if (ui.tab === 'net') return `<div id="agbody">${netBody()}</div>`;
   if (ui.tab === 'elec') return `<div id="agbody">${elecBody()}</div>`;
+  if (ui.tab === 'maint') return `<div id="agbody">${maintBody()}</div>`;
   return searchBox() + (ui.tab === 'agenda' ? clearDoneBtn() : '') + `<div id="agbody">${tabContent()}</div>`;
 }
 
@@ -634,6 +637,7 @@ function tabBody() {
     case 'tasks': return renderTasks();
     case 'net': return netBody();
     case 'elec': return elecBody();
+    case 'maint': return maintBody();
   }
   return '';
 }
@@ -693,7 +697,7 @@ function agendaBody() {
   items.forEach(d => { const k = dayKey(d.when); (groups[k] = groups[k] || []).push(d); });
   const shopOpen = docs('shop').filter(d => !d.done);
   const undated = docs('task').filter(d => !d.when).sort(openFirst);
-  let html = netAgendaCard() + elecAgendaCard();
+  let html = netAgendaCard() + elecAgendaCard() + maintAgendaCard();
   if (shopOpen.length) {
     const byCat = {};
     shopOpen.forEach(d => { byCat[d.cat || ''] = (byCat[d.cat || ''] || 0) + 1; });
@@ -1162,6 +1166,7 @@ function renderEdit(s) {
   const d = s.doc;
   if (d.kind === 'net') return renderNetEdit(s);
   if (d.kind === 'elec') return renderElecEdit(s);
+  if (d.kind === 'maint') return renderMaintEdit(s);
   let f = '';
   if (d.kind === 'appt') {
     f += `<div class="seg">${['doctor', 'hospital', 'test'].map(k => `<button type="button" class="${d.sub === k ? 'on' : ''}" data-sub="${k}">${k === 'doctor' ? '🩺' : k === 'hospital' ? '🏥' : '🧪'} ${esc(t('sub_' + k))}</button>`).join('')}</div>`;
@@ -1257,12 +1262,17 @@ function saveEdit(s) {
     if (s.isNew && fv !== null) d.reads = [{ id: uid(), v: fv, at: d.firstAt || Date.now(), note: '', by: S.me.name || '', ca: Date.now() }];
     delete d.firstV; delete d.firstAt;
   }
+  if (d.kind === 'maint') {
+    d.name = (d.name || '').trim(); d.techPhone = String(d.techPhone || '').trim();
+    if (!d.name) { N.toast(t('maint_need_name')); return; }
+    d.title = d.name;
+  }
   s.added.forEach(p => { if (d.photos.includes(p) && !S.photoUp.includes(p)) S.photoUp.push(p); });
   const before = S.docs[d.id];
   if (!!d.done !== !!(before && before.done)) setDone(d, !!d.done);
   s.saved = true;
   putDoc(d);
-  ui.tab = d.kind === 'net' || d.kind === 'elec' ? d.kind : ui.tab === 'agenda' ? 'agenda' : KINDS[d.kind].tab;
+  ui.tab = d.kind === 'net' || d.kind === 'elec' || d.kind === 'maint' ? d.kind : ui.tab === 'agenda' ? 'agenda' : KINDS[d.kind].tab;
   pop();
   N.toast(t('saved'));
 }
@@ -2346,11 +2356,209 @@ function elecReadDelete(id, rid) {
   }, true);
 }
 
+/* ================= Maintenance (boiler, air conditioner, car …) ================= */
+
+const MAINT_TYPES = [['boiler', '🔥'], ['ac', '❄️'], ['car', '🚗'], ['heater', '🚿'], ['water', '💧'], ['washer', '🧺'], ['other', '🔧']];
+const MAINT_EVERY = [1, 3, 6, 12, 24];
+const MAINT_WARN = [1, 3, 7, 14, 30];
+
+function maintIcon(d) { const x = MAINT_TYPES.find(([k]) => k === d.mType); return x ? x[1] : '🔧'; }
+/** Last service: the newest recorded service, or the date typed when the item was added. */
+function maintServs(d) { return (d.servs || []).slice().sort((a, b) => (b.at - a.at) || ((b.ca || 0) - (a.ca || 0))); }
+function maintLast(d) { const s = maintServs(d)[0]; return Math.max(s ? s.at : 0, d.lastAt || 0) || null; }
+function maintNext(d) { const l = maintLast(d); return l ? addMonths(l, d.every || 12) : null; }
+function maintDays(d) { const n = maintNext(d); return n ? Math.round((dayKey(n) - dayKey(Date.now())) / DAY) : null; }
+/** 'none' | 'ok' | 'soon' | 'late' */
+function maintState(d) {
+  const n = maintDays(d);
+  if (n === null) return 'none';
+  if (n < 0) return 'late';
+  return n <= (d.warnDays || 7) ? 'soon' : 'ok';
+}
+function maintLeftText(d) {
+  const n = maintDays(d);
+  if (n === null) return t('maint_no_last');
+  if (n < 0) return t('maint_late', { n: -n });
+  if (n === 0) return t('maint_today');
+  if (n === 1) return t('maint_tomorrow');
+  return t('maint_left', { n });
+}
+function maintItems() { return docs('maint').sort((a, b) => (maintNext(a) || 9e15) - (maintNext(b) || 9e15) || String(a.name || '').localeCompare(String(b.name || ''), locale())); }
+function maintTel(p) { return String(p || '').replace(/[^\d+]/g, ''); }
+
+/** Reminders at 10:00: N days before, the day before and on the day; while late, the next mornings (1, 3 and 7 days on). */
+function maintAl(d) {
+  const at10 = ms => { const x = new Date(ms); x.setHours(10, 0, 0, 0); return x.getTime(); };
+  const now = Date.now();
+  const next = maintNext(d);
+  const times = [];
+  if (next) {
+    [d.warnDays || 7, 1, 0].forEach(k => times.push(at10(next - k * DAY)));
+    if (next < now) [1, 3, 7].forEach(k => times.push(at10(now + k * DAY)));
+  }
+  const tech = [d.techName, d.techPhone].filter(Boolean).join(' ');
+  return {
+    t: [...new Set(times)].filter(x => x > now).sort(),
+    ti: maintIcon(d) + ' ' + (d.name || t('tab_maint')) + ' — ' + t('maint_rem_ti'),
+    b: t('maint_rem_body', { date: netDate(next) }) + (tech ? ' · 👷 ' + tech : '')
+  };
+}
+
+function newMaint() {
+  return { kind: 'maint', name: '', title: '', mType: 'boiler', model: '', every: 12, lastAt: null, warnDays: 7, everyKm: '', lastKm: '',
+    techName: '', techPhone: '', techWa: true, servs: [], photos: [], notes: '', when: null, rem: [], remAt: null, done: false };
+}
+
+function maintCallBtns(d, small) {
+  const p = maintTel(d.techPhone);
+  if (!p) return '';
+  const cls = 'btn' + (small ? ' small' : ' primary');
+  let h = '';
+  if (!isDesktop()) h += `<a class="${cls} maintcall" data-ext href="tel:${esc(p)}">📞 ${esc(t('maint_call'))}</a>`;
+  else h += `<button type="button" class="btn${small ? ' small' : ''}" data-copycode="${esc(p)}">📞 ${esc(d.techPhone)} · 📋</button>`;
+  if (d.techWa !== false && waNumber(p)) h += `<a class="btn${small ? ' small' : ''} wa" data-ext href="https://wa.me/${waNumber(p)}">${WA_ICON} WhatsApp</a>`;
+  return h;
+}
+
+function maintCard(d) {
+  const st = maintState(d);
+  const next = maintNext(d), last = maintLast(d);
+  const photoId = coverOf(d);
+  const more = (d.photos || []).filter(p => p !== photoId && N.photoUrl(p));
+  const sv = maintServs(d);
+  const rows = sv.slice(0, 10);
+  const km = d.mType === 'car' && elecNum(d.everyKm) ? (elecNum(d.lastKm) !== null ? t('maint_km_next', { km: elecFmt(elecNum(d.lastKm) + elecNum(d.everyKm)), every: elecFmt(elecNum(d.everyKm)) }) : t('maint_km_every', { every: elecFmt(elecNum(d.everyKm)) })) : '';
+  return `<div class="card eleccard maintcard">
+    <div class="nethead">
+      <div class="neticon mainticon">${maintIcon(d)}</div>
+      <div class="rtext"><div class="netname">${esc(d.name || t('tab_maint'))}</div>
+        <div class="rmeta">${esc([t('maint_t_' + (d.mType || 'other')), d.model ? tx(d.model) : ''].filter(Boolean).join(' · '))}</div>
+        <div class="rmeta">🔁 ${esc(t('maint_every_n', { n: d.every || 12 }))}</div></div>
+      <button class="nbtn" data-open="${d.id}" title="${esc(t('edit'))}">✏️</button>
+      ${isAdmin() ? `<button class="nbtn" data-trash="${d.id}" title="${esc(t('delete'))}">🗑</button>` : ''}
+    </div>
+    <div class="elecmain">
+      ${photoId ? `<figure class="elecph"><img src="${esc(N.photoUrl(photoId))}" data-view="${esc(photoId)}" data-of="${d.id}" alt=""></figure>` : ''}
+      <div class="elecright">
+        <div class="netstat ${st}">
+          <span class="nsicon">${st === 'late' ? '⚠️' : st === 'soon' ? '⏰' : st === 'none' ? '❔' : '✅'}</span>
+          <div class="rtext"><div class="small muted">${esc(t('maint_next'))}</div>
+            <div class="nstitle">${esc(next ? netDate(next) : '—')}</div><div class="small">${esc(maintLeftText(d))}</div></div>
+        </div>
+        <p class="small elecuse">🛠️ ${esc(t('maint_last'))}: <b>${esc(last ? netDate(last) : '—')}</b>${last ? ' · ' + esc(elecAgoText(last)) : ''}</p>
+        ${km ? `<p class="small elecuse">🚗 ${esc(km)}</p>` : ''}
+        ${d.techName || d.techPhone ? `<div class="maintech"><div class="small"><span class="muted">👷 ${esc(t('maint_tech'))}:</span> <b>${esc(tx(d.techName) || '—')}</b>${d.techPhone ? ` <span class="muted" dir="ltr">${esc(d.techPhone)}</span>` : ''}</div>
+          <div class="actions cbtns">${maintCallBtns(d)}</div></div>` : `<p class="small muted">👷 ${esc(t('maint_no_tech'))}</p>`}
+        <button class="btn wide elecadd maintdone" data-maintdone="${d.id}">✓ ${esc(t('maint_done'))}</button>
+      </div>
+    </div>
+    ${more.length ? `<div class="netinfo-row">${more.map(p => `<img src="${esc(N.photoUrl(p))}" data-view="${esc(p)}" data-of="${d.id}" alt="">`).join('')}</div>` : ''}
+    ${d.notes ? `<p class="small muted netnotes">${esc(tx(d.notes))}</p>` : ''}
+    ${rows.length ? `<div class="netpays"><div class="small muted">${esc(t('maint_hist'))}</div>
+      ${rows.map(x => `<div class="elecrow maintrow">
+        <span>${esc(dateIn(x.at))}</span><b>${esc(x.cost ? netMoney(x.cost, x.cur) : '')}</b>
+        <span class="small muted">${esc(x.km ? elecFmt(elecNum(x.km) || 0) + ' km' : '')}</span>
+        <button class="nbtn sm" data-maintedit="${d.id}|${esc(x.id)}" title="${esc(t('edit'))}">✏️</button>
+        ${isAdmin() ? `<button class="nbtn sm" data-maintdel="${d.id}|${esc(x.id)}" title="${esc(t('delete'))}">🗑</button>` : '<span></span>'}
+        <span class="small muted elecby">${esc([x.note ? tx(x.note) : '', x.by || ''].filter(Boolean).join(' · '))}</span>
+      </div>`).join('')}
+      ${sv.length > rows.length ? `<p class="small muted center">${esc(t('elec_more', { n: sv.length - rows.length }))}</p>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+function maintBody() {
+  const items = maintItems();
+  let h = `<p class="muted small netintro">${esc(t('maint_intro'))}</p><button class="btn primary netadd" data-act="add">＋ ${esc(t('maint_add'))}</button>`;
+  if (!items.length) return h + `<div class="empty"><div class="eicon">🔧</div><p>${esc(t('maint_empty'))}</p></div>`;
+  return h + items.map(maintCard).join('');
+}
+
+/** On the main screen: what is due soon or late, with the call button right there. */
+function maintAgendaCard() {
+  const warn = maintItems().filter(d => ['soon', 'late'].includes(maintState(d)));
+  if (!warn.length) return '';
+  return `<div class="card summary netsum" data-tab="maint"><div class="stitle">🔧 ${esc(t('tab_maint'))}</div>
+    ${warn.map(d => `<div class="maintsum"><span class="small ${maintState(d)}">${esc(maintIcon(d) + ' ' + (d.name || '') + ': ' + maintLeftText(d))}</span>${!isDesktop() && maintTel(d.techPhone) ? `<a class="nbtn sm" data-ext href="tel:${esc(maintTel(d.techPhone))}" title="${esc(t('maint_call'))}">📞</a>` : ''}</div>`).join('')}</div>`;
+}
+
+function renderMaintEdit(s) {
+  const d = s.doc;
+  let f = '';
+  f += `<div class="field"><span>${esc(t('maint_type'))}</span><div class="chips wrap">${MAINT_TYPES.map(([k, i]) => `<button type="button" class="chip ${d.mType === k ? 'on' : ''}" data-mtype="${k}">${i} ${esc(t('maint_t_' + k))}</button>`).join('')}</div></div>`;
+  f += field(t('maint_name'), `<input name="name" value="${esc(d.name || '')}" placeholder="${esc(t('maint_name_ph'))}">`);
+  f += field(t('maint_model'), `<input name="model" value="${esc(d.model || '')}" placeholder="${esc(t('maint_model_ph'))}">`);
+  f += `<div class="field"><span>🔁 ${esc(t('maint_every'))}</span><div class="chips wrap">${MAINT_EVERY.map(n => `<button type="button" class="chip ${(d.every || 12) === n ? 'on' : ''}" data-mevery="${n}">${esc(t('maint_months', { n }))}</button>`).join('')}</div></div>`;
+  f += field('🛠️ ' + t('maint_last_date'), `<input type="date" name="lastAt" value="${dateIn(d.lastAt)}">`);
+  f += `<div class="field"><span>🔔 ${esc(t('maint_warn'))}</span><div class="chips wrap">${MAINT_WARN.map(n => `<button type="button" class="chip ${(d.warnDays || 7) === n ? 'on' : ''}" data-mwarn="${n}">${esc(t('net_days', { n }))}</button>`).join('')}</div></div>`;
+  if (d.mType === 'car') f += `<div class="two">${field(t('maint_every_km'), `<input name="everyKm" inputmode="numeric" value="${esc(d.everyKm || '')}" placeholder="10000">`)}${field(t('maint_last_km'), `<input name="lastKm" inputmode="numeric" value="${esc(d.lastKm || '')}" placeholder="85000">`)}</div>`;
+  f += `<h4>👷 ${esc(t('maint_tech'))}</h4>`;
+  f += `<div class="two">${field(t('maint_tech_name'), `<input name="techName" value="${esc(d.techName || '')}" placeholder="${esc(t('maint_tech_ph'))}">`)}${field('📞 ' + t('phone'), `<input name="techPhone" type="tel" dir="ltr" value="${esc(d.techPhone || '')}" placeholder="05xx xxx xx xx">`)}</div>`;
+  f += `<label class="switch"><input type="checkbox" name="techWa" ${d.techWa !== false ? 'checked' : ''}> ${WA_ICON} ${esc(t('maint_tech_wa'))}</label>`;
+  f += `<div class="field"><span>🖼️ ${esc(t('photos'))}</span><div class="photos">
+    ${photoOrder(d).map(p => photoEditItem(d, p, true)).join('')}
+    ${isDesktop() ? '' : `<button type="button" class="ph-add" data-pick="camera">📷<small>${esc(t('camera'))}</small></button>`}
+    <button type="button" class="ph-add" data-pick="gallery">🖼️<small>${esc(t('gallery'))}</small></button>
+  </div></div>`;
+  f += field(t('notes'), txArea('notes', d.notes, '', true));
+  if (!s.isNew) {
+    f += `<p class="meta">${esc(t('added_by', { name: tx(d.byName) || '—', date: fmtWhen(d.ca) }))}</p>`;
+    if (isAdmin()) f += `<button type="button" class="btn danger wide" data-act="delete">🗑 ${esc(t('delete'))}</button>`;
+  }
+  return `<form id="editform" onsubmit="return false">${f}<div style="height:80px"></div></form>`;
+}
+
+/** Record a service (or change one: sid). The next date moves on from it. */
+function maintServDialog(id, sid) {
+  const d = S.docs[id];
+  if (!d) return;
+  const old = sid ? (d.servs || []).find(x => x.id === sid) : null;
+  if (sid && !old) return;
+  const prev = maintServs(d)[0];
+  const cur = old ? old.cur : (prev && prev.cur) || 'USD';
+  openModal(`<h3>${maintIcon(d)} ${esc(old ? t('maint_edit_serv') : t('maint_done'))} — ${esc(d.name || '')}</h3>
+    ${field(t('maint_serv_date'), `<input id="ms-d" type="date" value="${dateIn(old ? old.at : Date.now())}">`)}
+    <div class="two">${field(t('maint_cost'), `<input id="ms-c" inputmode="decimal" value="${old ? esc(old.cost || '') : ''}">`)}${field(t('net_cur'), `<select id="ms-u">${NET_CURS.concat(NET_CURS.includes(cur) ? [] : [cur]).map(c => `<option ${c === cur ? 'selected' : ''}>${c}</option>`).join('')}</select>`)}</div>
+    ${d.mType === 'car' ? field(t('maint_km_now'), `<input id="ms-k" inputmode="numeric" value="${old ? esc(old.km || '') : ''}">`) : ''}
+    ${field(t('maint_serv_note'), `<input id="ms-n" value="${old ? esc(old.note || '') : ''}" placeholder="${esc(t('maint_serv_note_ph'))}">`)}
+    <p class="small" id="ms-x"></p>
+    <div class="mbtns"><button class="btn" data-act="mclose">${esc(t('cancel'))}</button><button class="btn primary" id="m-ok">✓ ${esc(t('save'))}</button></div>`,
+  root => {
+    const dt = root.querySelector('#ms-d'), x = root.querySelector('#ms-x');
+    const upd = () => { const at = dateOut(dt.value); x.textContent = at ? '📅 ' + t('maint_next') + ': ' + netDate(addMonths(at, d.every || 12)) : ''; };
+    dt.addEventListener('input', upd); dt.addEventListener('change', upd); upd();
+    root.querySelector('#m-ok').onclick = () => {
+      const at = dateOut(dt.value) || Date.now();
+      const c = JSON.parse(JSON.stringify(S.docs[id]));
+      c.servs = c.servs || [];
+      const k = root.querySelector('#ms-k');
+      const v = { at, cost: root.querySelector('#ms-c').value.trim(), cur: root.querySelector('#ms-u').value, note: root.querySelector('#ms-n').value.trim(), km: k ? k.value.trim() : '' };
+      if (old) { const y = c.servs.find(z => z.id === sid); if (y) Object.assign(y, v, { ua: Date.now() }); }
+      else c.servs.push(Object.assign({ id: uid(), by: S.me.name || '', ca: Date.now() }, v));
+      if (c.mType === 'car' && v.km) { const newest = maintServs(c)[0]; if (newest && newest.km) c.lastKm = newest.km; }
+      putDoc(c);
+      closeModal();
+      render();
+      N.toast(t('saved'));
+    };
+  });
+}
+
+function maintServDelete(id, sid) {
+  if (!isAdmin()) { N.toast(t('only_admin')); return; }
+  confirmBox(t('maint_confirm_del'), t('delete'), () => {
+    const c = JSON.parse(JSON.stringify(S.docs[id]));
+    c.servs = (c.servs || []).filter(x => x.id !== sid);
+    putDoc(c);
+    render();
+  }, true);
+}
+
 /* ================= Events ================= */
 
 document.addEventListener('click', async e => {
   if (e.target.closest('a[data-ext]')) return;
-  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn]');
+  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn],[data-maintdone],[data-maintedit],[data-maintdel],[data-mtype],[data-mevery],[data-mwarn]');
   if (!el) return;
   const ds = el.dataset;
   const top = ui.stack[ui.stack.length - 1];
@@ -2370,6 +2578,9 @@ document.addEventListener('click', async e => {
   if (ds.netpay) { e.stopPropagation(); netPayDialog(ds.netpay); return; }
   if (ds.netst) { e.stopPropagation(); const [i, k, v] = ds.netst.split('|'); if (S.docs[i]) netSetStatus(i, k, v); return; }
   if (ds.elecread) { e.stopPropagation(); elecReadDialog(ds.elecread); return; }
+  if (ds.maintdone) { e.stopPropagation(); maintServDialog(ds.maintdone); return; }
+  if (ds.maintedit) { e.stopPropagation(); const [i, r] = ds.maintedit.split('|'); maintServDialog(i, r); return; }
+  if (ds.maintdel) { e.stopPropagation(); const [i, r] = ds.maintdel.split('|'); if (S.docs[i]) maintServDelete(i, r); return; }
   if (ds.elecedit) { e.stopPropagation(); const [i, r] = ds.elecedit.split('|'); elecReadDialog(i, r); return; }
   if (ds.elecdel) { e.stopPropagation(); const [i, r] = ds.elecdel.split('|'); if (S.docs[i]) elecReadDelete(i, r); return; }
   if (ds.netpaydel) { e.stopPropagation(); const [i, x] = ds.netpaydel.split('|'); if (S.docs[i]) netPayDelete(i, +x); return; }
@@ -2450,6 +2661,9 @@ document.addEventListener('click', async e => {
     if (ds.netq) { readForm(top); d.qType = ds.netq; render(); return; }
     if (ds.electype) { readForm(top); d.mType = ds.electype; render(); return; }
     if (ds.elecwarn) { readForm(top); d.warnDays = +ds.elecwarn; render(); return; }
+    if (ds.mtype) { readForm(top); d.mType = ds.mtype; render(); return; }
+    if (ds.mevery) { readForm(top); d.every = +ds.mevery; render(); return; }
+    if (ds.mwarn) { readForm(top); d.warnDays = +ds.mwarn; render(); return; }
     if (ds.rem) {
       readForm(top);
       const m = +ds.rem;
@@ -2518,6 +2732,7 @@ document.addEventListener('click', async e => {
       if (ui.tab === 'agenda') chooseKind();
       else if (ui.tab === 'net') openEdit(newNet(), true);
       else if (ui.tab === 'elec') openEdit(newElec(), true);
+      else if (ui.tab === 'maint') openEdit(newMaint(), true);
       else openEdit(newDoc({ health: 'appt', visits: 'visit', shop: 'shop', tasks: 'task' }[ui.tab]), true);
       break;
     case 'save': if (top) saveEdit(top); break;

@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -42,7 +43,8 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     static final String HOST = "appassets.androidplatform.net";
     static final String INDEX = "https://" + HOST + "/www/index.html";
-    static final int REQ_GALLERY = 11, REQ_CAMERA = 12, REQ_NOTIF = 21;
+    static final int REQ_GALLERY = 11, REQ_CAMERA = 12, REQ_NOTIF = 21, REQ_CAM_PERM = 22;
+    PermissionRequest camReq = null;
 
     WebView web;
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -69,7 +71,23 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
         web.setBackgroundColor(Color.parseColor("#F4F5F2"));
         web.addJavascriptInterface(new Bridge(), "Android");
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            // Yerel ağ eşitlemesinde QR kodu canlı kamerayla okumak için
+            @Override
+            public void onPermissionRequest(final PermissionRequest req) {
+                ui.post(() -> {
+                    boolean video = false;
+                    for (String r : req.getResources()) if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) video = true;
+                    if (!video) { req.deny(); return; }
+                    if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                        req.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                    } else {
+                        camReq = req;
+                        requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAM_PERM);
+                    }
+                });
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
@@ -98,6 +116,16 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIF);
         }
         new Thread(() -> Alarms.reschedule(this)).start();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(req, perms, res);
+        if (req == REQ_CAM_PERM && camReq != null) {
+            if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) camReq.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else camReq.deny();
+            camReq = null;
+        }
     }
 
     /* ---------- serving www + photos ---------- */
@@ -376,6 +404,14 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public String version() { return Updater.wwwVersion(MainActivity.this); }
+
+        /* ---------- yerel ağ eşitleme (internetsiz) ---------- */
+        @JavascriptInterface public void lanHttp(String cb, String method, String url, String body, int timeoutMs, String key) { bg(() -> callback(cb, LanSync.http(method, url, body, timeoutMs, key))); }
+        @JavascriptInterface public void lanGetPhoto(String cb, String url, String id, String key) { bg(() -> callback(cb, LanSync.getFile(url, Store.photoFile(MainActivity.this, id), key))); }
+        @JavascriptInterface public void lanPutPhoto(String cb, String url, String id, String key) { bg(() -> callback(cb, LanSync.putFile(url, Store.photoFile(MainActivity.this, id), key))); }
+        @JavascriptInterface public void lanFind(String cb, int port, String key, String appId) { bg(() -> callback(cb, LanSync.find(port, key, appId))); }
+        @JavascriptInterface public String lanIps() { return LanSync.ipsJson(); }
+        @JavascriptInterface public boolean hasPhotoLocal(String id) { return Store.photoFile(MainActivity.this, id).isFile(); }
 
         @JavascriptInterface public boolean notifyNow(String title, String body, String docId) {
             Notify.show(MainActivity.this, Notify.CH_FAMILY, title, body, docId);

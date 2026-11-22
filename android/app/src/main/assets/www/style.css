@@ -295,3 +295,12 @@ textarea.grow { resize: none; overflow: hidden; line-height: 1.4; min-height: 46
 .elecdiff { color: var(--muted); }
 .elecdiff.up { color: #237A3E; font-weight: 600; }
 @media (max-width: 420px) { .tab small { font-size: 10px; } .tab span { font-size: 19px; } }
+/* Maintenance tab */
+.mainticon { background: #E8F1FB; }
+.maintech { border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.maintech .cbtns { margin: 0; flex-wrap: wrap; }
+.maintcall { font-size: 16px; }
+.maintcard .netstat { margin: 0; }
+.maintsum { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.tab small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 420px) { .tab small { font-size: 9.5px; } .tab span { font-size: 18px; } }

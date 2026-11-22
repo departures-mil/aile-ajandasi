@@ -10,8 +10,8 @@ android {
         applicationId "com.ajandam.app"
         minSdk 24
         targetSdk 34
-        versionCode 20          // NATIVE_CODE: raise when the Java side changes (new APK needed)
-        versionName "4.0"
+        versionCode 21          // NATIVE_CODE: raise when the Java side changes (new APK needed)
+        versionName "4.7"
     }
 
     signingConfigs {

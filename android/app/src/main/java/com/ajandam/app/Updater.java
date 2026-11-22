@@ -32,8 +32,8 @@ public final class Updater {
 
     public static final String PUBKEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMdYJKGu2BpJT/N9oK9TMsUfmeJqMStUAtvlsA9wHYfk9Z6cJo5zdvTBSJpChyTNe3nGbSP/DJI7YTrnr2zij7w==";
     /** Code of the www bundled in this APK's assets (bumped together with the published bundle it matches). */
-    public static final int BUILTIN_WWW_CODE = 23;
-    public static final String BUILTIN_WWW_VERSION = "4.0";
+    public static final int BUILTIN_WWW_CODE = 30;
+    public static final String BUILTIN_WWW_VERSION = "4.7";
 
     public static File otaDir(Context c) { return new File(c.getFilesDir(), "ota"); }
     static File otaNew(Context c) { return new File(c.getFilesDir(), "ota-new"); }
@@ -61,6 +61,11 @@ public final class Updater {
     /** Called at every start: swaps in a downloaded bundle and rolls back one that never reported otaOk. */
     public static synchronized void promote(Context c) {
         SharedPreferences p = Store.prefs(c);
+        // A new APK carries newer files than an older downloaded bundle: drop the older one.
+        try {
+            File meta = new File(otaDir(c), "meta.json");
+            if (meta.isFile() && new JSONObject(Store.readText(meta)).optInt("code", 0) < BUILTIN_WWW_CODE) Store.deleteTree(otaDir(c));
+        } catch (Exception ignored) {}
         if (otaNew(c).isDirectory()) {
             Store.deleteTree(otaPrev(c));
             if (otaDir(c).isDirectory()) otaDir(c).renameTo(otaPrev(c));
