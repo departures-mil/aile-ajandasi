@@ -93,6 +93,50 @@ async function updateCheck() {
   }
 }
 
+/* ---------- telefon güncellemesinin aktarılması (GitHub → ailenin Firebase'i) ----------
+ * Telefon uygulaması (APK 4.7) güncellemeyi ailenin Firestore'undaki families/{fid}/photos/upd_* belgelerinden alır.
+ * Masaüstü, GitHub'daki imzalı paket ailedekinden yeniyse onu oraya da koyar; böylece tek GitHub yayını telefona da ulaşır.
+ * Paket geliştiricinin anahtarıyla imzalıdır, telefon imzayı yine kendisi doğrular (aktaran cihaz paketi değiştiremez). */
+const RELAY_PART = 700000;
+let relaying = false;
+async function relayUpdateToFamily() {
+  if (relaying) return;
+  relaying = true;
+  try {
+    const cfg = syncConfig();
+    if (!cfg.fid || !cfg.projectId || !cfg.apiKey) return;
+    const man = await updateManifest();
+    if (!man || !man.code || !man.file || !man.sha || !man.sig) return;
+    const tok = await idToken();
+    if (!tok) return;
+    const base = `${docsBase()}/families/${cfg.fid}/photos`;
+    const cur = await http('GET', `${base}/upd_latest`, null, null, tok, 30000);
+    let fb = {};
+    if (cur.status === 200) { try { fb = JSON.parse(JSON.parse(cur.body).fields.data.stringValue || '{}'); } catch (e) { fb = {}; } }
+    else if (cur.status !== 404) return;
+    if (Number(fb.code || 0) >= Number(man.code)) return;
+    const buf = await ghFile(man.file);
+    if (!buf || crypto.createHash('sha256').update(buf).digest('hex') !== man.sha) return;
+    const b64 = buf.toString('base64');
+    const parts = [];
+    for (let i = 0; i < b64.length; i += RELAY_PART) parts.push(b64.slice(i, i + RELAY_PART));
+    if (!parts.length) parts.push('');
+    const put = async (id, data) => {
+      for (let a = 0; a < 4; a++) {
+        const r = await http('PATCH', `${base}/${id}`, JSON.stringify({ fields: { data: { stringValue: data } } }), null, tok, 120000);
+        if (r.status === 200) return true;
+        if (r.status === 403 || r.status === 400) return false;
+        await new Promise(res => setTimeout(res, 2000 + a * 3000));
+      }
+      return false;
+    };
+    for (let i = 0; i < parts.length; i++) if (!(await put(`upd_b${man.code}_${i}`, parts[i]))) return;
+    const out = Object.assign({}, fb, { code: man.code, version: man.version, notes: man.notes || '', parts: parts.length,
+      partChars: parts.map(p => p.length), bytes: buf.length, sha: man.sha, sig: man.sig, published: man.published || Date.now() });
+    await put('upd_latest', JSON.stringify(out));
+  } catch (e) { /* bir sonraki denemede */ } finally { relaying = false; }
+}
+
 let applying = null;
 function sendProgress(p) {
   if (win && !win.isDestroyed()) win.webContents.send('updProgress', p);
@@ -441,6 +485,8 @@ if (!app.requestSingleInstanceLock()) {
     lan.setup({ appId: 'ajandam', prefsGet: prefs, prefsSet: setPrefs, photoFile, getWindow: () => win });
     setInterval(checkReminders, 20000);
     setTimeout(checkReminders, 3000);
+    setTimeout(relayUpdateToFamily, 60000);              // telefon güncellemesini aileye aktar
+    setInterval(relayUpdateToFamily, 6 * 3600 * 1000);
   });
   app.on('before-quit', () => { quitting = true; });
   app.on('window-all-closed', () => { /* stay in tray */ });

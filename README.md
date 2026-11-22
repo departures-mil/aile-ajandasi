@@ -5,7 +5,8 @@ eşitlenir; **kayıtlar bu depoda bulunmaz**.
 
 - `www/` ortak arayüz, `desktop/` masaüstü kabuğu, `android/` Android kaynağı (yayındaki APK 4.7'nin kaynağı, Wi‑Fi eşitleme `LanSync.java` dahil; 2026-11-22'de özel `ajandam` deposundan alındı).
 - `guncelleme/upd_latest.json` + `bundle-<code>.gz` — ECDSA imzalı güncelleme. Masaüstü buradan güncellenir.
-- Telefon uygulaması (APK 4.7) güncellemeyi henüz ailenin Firebase'inden alır; `tools/yayinla.py --firebase` aynı paketi oraya da koyar.
+- Telefon uygulaması (APK 4.7) güncellemeyi ailenin Firebase'inden alır. 5.1'den itibaren **bilgisayardaki Ajandam** GitHub'daki imzalı paketi
+  ailenin Firebase'ine kendisi aktarır (açılıştan 1 dk sonra ve 6 saatte bir; `desktop/main.js` relayUpdateToFamily). Elle: `tools/yayinla.py --firebase`.
 - İmza anahtarları (`keys/`) depoda yoktur.
 
 ## Yeni sürüm
