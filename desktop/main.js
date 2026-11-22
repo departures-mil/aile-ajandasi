@@ -212,6 +212,8 @@ async function http(method, url, body, contentType, token, timeoutMs) {
     const headers = {};
     if (token) headers.Authorization = 'Bearer ' + token;
     if (body) headers['Content-Type'] = contentType || 'application/json; charset=utf-8';
+    // FormSubmit, Referer'sız isteği reddeder; etkinleştirilmiş site gönderilir
+    if (/^https:\/\/formsubmit\.co\//.test(url)) { headers.Accept = 'application/json'; headers.Referer = 'https://formsubmit.co/'; headers.Origin = 'https://formsubmit.co'; }
     const r = await net.fetch(url, { method, headers, body: body || undefined, signal: ctl.signal });
     return { status: r.status, body: await r.text() };
   } catch (e) {

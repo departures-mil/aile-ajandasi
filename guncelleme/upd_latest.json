@@ -1,10 +1,10 @@
 {
- "code": 37,
- "version": "5.4",
- "notes": "Ajandam 5.4: Ayarlar'a «Kullanım Limitleri» eklendi (ailenizin Firebase hesabındaki günlük okuma/yazma/silme kullanımı). Artık her aile kendi ücretsiz Firebase hesabını kullanır; kurulum adımları ❓ yardımda. Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-37.gz",
- "bytes": 273888,
- "sha": "d7e20e6cbf3acaff271b228936bba85f3e267e8a16110c095877c5057e60fe89",
- "sig": "MEUCIQD0dJZfeSCoRT45Ur0gfWoAE//yz02GQDrarLD/cQ9aZAIgfph3lIhgCykrGqxzy1LX8Lnkm/Yo1dcYNi8mSoq089E=",
- "published": 1795328770327
+ "code": 38,
+ "version": "5.5",
+ "notes": "Ajandam 5.5: «Admin ile iletişime geç» düzeltildi — mesajlarınız artık yöneticiye güvenilir biçimde ulaşıyor. Kayıtlarınız olduğu gibi kalır.",
+ "file": "bundle-38.gz",
+ "bytes": 274393,
+ "sha": "450470f5479a840410daa900d200f3616e7b69b5eb4bd0553449b09701bbd35f",
+ "sig": "MEUCIALiZRM64gfzrvVJSyl1viFpwm+Z6vsTXEKCtkQ3IXz9AiEAhZ3QWeOMeMa5pbpamMOapvmrtBQfjO/AM17i7MIWck4=",
+ "published": 1795340362145
 }
