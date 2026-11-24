@@ -33,7 +33,7 @@ function run() {
 module.exports = { run, copyDir };
 if (require.main === module) {
   const s = require('./surum.js');
-  const bad = s.targets(s.version()).filter(([f, c]) => !fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== c);
+  const bad = s.targets(s.version()).filter(([f, c]) => !fs.existsSync(f) || fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n') !== c);
   if (bad.length) { console.error('Sürüm dosyaları güncel değil → node tools/surum.js'); process.exit(1); }
   run();
   console.log('www → desktop/www, android/app/src/main/assets/www');

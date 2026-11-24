@@ -39,7 +39,7 @@ module.exports = { version, versionCode, surumJs, targets };
 if (require.main === module) {
   const arg = process.argv[2];
   if (arg === '--check') {
-    const bad = targets(version()).filter(([f, s]) => !fs.existsSync(f) || R(f) !== s).map(([f]) => path.relative(ROOT, f));
+    const bad = targets(version()).filter(([f, s]) => !fs.existsSync(f) || R(f).replace(/\r\n/g, '\n') !== s).map(([f]) => path.relative(ROOT, f));
     if (bad.length) { console.error('güncel değil: ' + bad.join(', ') + ' → node tools/surum.js'); process.exit(1); }
     console.log('sürüm dosyaları güncel (' + version() + ')'); process.exit(0);
   }
