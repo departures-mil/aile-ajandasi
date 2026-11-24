@@ -1,10 +1,10 @@
 {
- "code": 39,
- "version": "5.6",
- "notes": "Ajandam 5.6: «Admin ile iletişime geç» düzeltildi — mesajlarınız artık yöneticiye güvenilir biçimde ulaşıyor (e-posta kopyası da gidiyor). Kayıtlarınız olduğu gibi kalır.",
- "file": "bundle-39.gz",
- "bytes": 274457,
- "sha": "bd4e8f0cd58efef14be3d41bca9c8495a5a0b9640433bbfaa11806ee56caa284",
- "sig": "MEUCIFoSF7sHEujgKKSC32pHwiM73TFT/HjLXoo0TtmMLvD9AiEA9hlp+a2ATJs6B4j18XvNPFEvjfWqsCrkPhXEEzmZh3g=",
- "published": 1795340454082
+ "code": 40,
+ "version": "5.7.1",
+ "notes": "Ajandam 5.7.1: yeni kurulum programı ve tek tuşla güncelleme (GitHub). Bu güncellemeden sonra program sizi yeni sürüme yönlendirir; kayıtlarınız korunur.\n- Telefon (Android) sürümü artık her güncellemede otomatik yayınlanıyor\n- Küçük düzeltmeler",
+ "file": "bundle-40.gz",
+ "bytes": 348613,
+ "sha": "f6afa1ad0da1ad2dba3a1fd534ce172eb35a179f6900b9102fca6a51c8cb9051",
+ "sig": "MEUCIQCm4JKn3u2pCygTH4a6SkCTIPeh9W4IHGoMXVxaf806xQIgUQ6FISjmt29Bmoxp913eHa5k+9zXAqzSn0FGmsdocD0=",
+ "published": 1795512438994
 }
