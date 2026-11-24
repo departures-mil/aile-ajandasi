@@ -21,3 +21,7 @@ eşitlenir; **kayıtlar bu depoda bulunmaz**.
 - Ayarlar > Kullanım Limitleri (`www/kullanim.js` = duyurular/istemci/kullanim.js, `www/kullanim-baslat.js`); `nat('http')` cevapları sayılır.
 - Ortak Firebase projesi (`aileajandasi-f65c9`) programdan çıkarıldı: her aile kendi ücretsiz hesabını kurar (❓ yardım / duyurular/firebase-kurulum.md).
   Eski ortak projede yalnız yöneticinin ailesi (`YONETICI_AILE` = R69ZH34686) kalır; diğer ailelerin eşitlemesi kapatılır, kayıtları telefonda kalır.
+
+## Asistan Agent (hazır, yayın bekliyor — 2026-11-24)
+✦ Asistan Agent eklendi: `fc-agent.js` (= ortak-cekirdek/web/dist/fc-agent.js) + `agent-baslat.js` arayüz klasöründe. Bütün programlardaki
+çalışmayı sayılarla izler, öneri verir (bildirim + ✦ panel), Ayarlar'da admin iletişim kartının önünde. Sonraki sürüm yayınlanınca kullanıcılara gider.
