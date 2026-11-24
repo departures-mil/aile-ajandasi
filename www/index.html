@@ -1,12 +1,21 @@
 <!doctype html>
-<html lang="tr" spellcheck="false">
+<html lang="tr" dir="ltr" data-scheme="falcon" spellcheck="false">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
 <title>Ajandam</title>
+<script>/* görünümü ilk boyamadan önce uygula (yanıp sönmesin) */try{var g=function(k){try{return JSON.parse(localStorage.getItem('fc.'+k))}catch(e){return null}},d=document.documentElement,th=g('theme'),sc=g('scheme'),l=g('lang'),fs=g('fontScale');if(sc)d.setAttribute('data-scheme',sc);if(th==='light'||(th==='auto'&&matchMedia('(prefers-color-scheme: light)').matches))d.classList.add('theme-light');if(l){d.lang=l;d.dir=l==='ar'?'rtl':'ltr'}if(fs)d.style.setProperty('--font-scale',fs)}catch(e){}</script>
+<link rel="stylesheet" href="cekirdek/css/tokens.css">
+<link rel="stylesheet" href="cekirdek/css/core.css">
 <link rel="stylesheet" href="style.css">
+<script src="cekirdek/fc-core.js"></script>
+<script src="surum.js"></script>
 </head>
 <body spellcheck="false">
+<header id="topbar" class="topbar">
+  <div class="topbar-title"><h1 class="page-title"><span id="pageTitle">Ajandam</span> <span class="version-badge" id="verBadge"></span></h1></div>
+</header>
 <div id="app"></div>
 <script src="config.js"></script>
 <script src="i18n.js"></script>
@@ -15,10 +24,7 @@
 <script src="translate.js"></script>
 <script src="lan-vendor.js"></script>
 <script src="lan.js"></script>
-<script src="kullanim.js"></script>
+<script src="kabuk.js"></script>
 <script src="app.js"></script>
-<script src="duyuru.js"></script>
-<script src="duyuru-baslat.js"></script>
-<script src="kullanim-baslat.js"></script>
 </body>
 </html>

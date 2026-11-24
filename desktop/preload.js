@@ -1,6 +1,19 @@
 'use strict';
-// Gives the shared web UI the same "Android" bridge it uses on phones.
-const { ipcRenderer } = require('electron');
+// Gives the shared web UI the same "Android" bridge it uses on phones (+ window.fcHost of the shared core).
+const electron = require('electron');
+const { ipcRenderer } = electron;
+
+// Ortak çekirdek preload'u (window.fcHost). Bu pencerede contextIsolation kapalı (window.Android köprüsü sayfayla aynı dünyada
+// çalışır); contextBridge o kipte kullanılamadığı için fc-preload'un açtığı nesne doğrudan window'a konur.
+try {
+  if (!process.contextIsolated) {
+    const cb = electron.contextBridge;
+    const expose = (key, api) => { window[key] = api; };
+    try { cb.exposeInMainWorld = expose; } catch (e) { /* salt okunur */ }
+    if (cb.exposeInMainWorld !== expose) Object.defineProperty(cb, 'exposeInMainWorld', { value: expose, configurable: true, writable: true });
+  }
+  require('./cekirdek/electron/fc-preload.js');
+} catch (e) { window.__fcPreloadError = String(e && e.message || e); }
 
 const call = (name, ...args) => ipcRenderer.sendSync('sync', name, ...args);
 const later = name => (cb, ...args) => {
@@ -16,9 +29,6 @@ function showToast(text) {
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 2600);
 }
-
-// Live download numbers for the update card.
-ipcRenderer.on('updProgress', (e, p) => { if (window.onUpdProgress) window.onUpdProgress(p); });
 
 // Yerel ağ eşitleme: telefondan gelen eşitleme isteği arayüzde birleştirilir.
 ipcRenderer.on('lanReq', (e, rid, body) => {
@@ -45,9 +55,8 @@ window.Android = {
   deletePhotoLocal: id => call('deletePhotoLocal', id),
   pickPhoto: later('pickPhoto'),
   http: later('http'),
-  updateCheck: later('updateCheck'),
-  updateApply: later('updateApply'),
-  updateProgress: () => true,
+  deskInfo: () => call('deskInfo'),
+  importLegacy: later('importLegacy'),
   restartApp: () => call('restartApp'),
   otaOk: () => call('otaOk'),
   notifyNow: (title, body, docId) => call('notifyNow', title, body, docId),

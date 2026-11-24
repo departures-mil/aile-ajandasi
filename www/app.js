@@ -12,9 +12,7 @@ function nat(fn, ...args) {
     cbs[id] = s => {
       let v; try { v = JSON.parse(s); } catch (e) { v = s; }
       // Ayarlar > Kullanım Limitleri: Firestore isteklerini say
-      if ((fn === 'http' || fn === 'httpTok') && window.Kullanim && v && typeof v === 'object') {
-        try { Kullanim.ekle(Kullanim.cozumle(args[0], args[1], args[2], v.status, v.body)); } catch (e) {}
-      }
+      if ((fn === 'http' || fn === 'httpTok') && window.Kabuk && v && typeof v === 'object') Kabuk.countHttp(args[0], args[1], args[2], v.status, v.body);
       resolve(v);
     };
     N[fn](id, ...args);
@@ -137,12 +135,10 @@ function saveNow() {
 
 function isDesktop() { return !!(N.platform && N.platform() === 'desktop'); }
 
-function winModeBtn() {
-  if (!isDesktop()) return '';
-  const full = N.isFullScreen();
-  return `<button class="winmode" data-act="winmode">${full ? '🗗 ' + esc(t('window_view')) : '⛶ ' + esc(t('full_screen'))}</button>`;
-}
-window.onWindowMode = () => { if (!$('#modal')) render(); };
+// 5.7: pencere düğmeleri (Küçült · Orta · Tam ekran · Kapat) ortak çekirdeğin üst çubuğunda
+function winModeBtn() { return ''; }
+window.onWindowMode = () => {};
+window.__ajTop = () => { const s = ui.stack[ui.stack.length - 1]; return s ? s.type : ''; };
 
 function isAdmin() { return !S.sync.enabled || !!(S.sync.uid && (S.sync.adminUid === S.sync.uid || (S.sync.admins || []).includes(S.sync.uid))); }
 /** Devices the main phone gave full rights (deleting) to, besides itself. */
@@ -361,10 +357,21 @@ async function syncNow() {
     remote.forEach(x => {
       try { const d = JSON.parse(x.fields.json.stringValue); if (d.del) tombsSeen.push(d); else next[idOf(x.name)] = d; } catch (e) {}
     });
-    Object.keys(S.dirty).forEach(id => { if (S.docs[id]) next[id] = S.docs[id]; });
+    // 5.7 kuralı: hiçbir kayıt kaybolmaz. Eşitleme sırasında burada da değişen kayıtta yeni olan kalır, eski hal yedeğe gider
+    // (Ayarlar → Arşiv ve yedekler); başka cihazda silinen kayıt bu cihazda arşivlenir, fotoğraf dosyaları silinmez.
+    Object.keys(S.dirty).forEach(id => {
+      const mine = S.docs[id];
+      if (!mine) return;
+      const theirs = next[id];
+      if (theirs && LanCore.canon(theirs) !== LanCore.canon(mine) && theirs.ubid !== S.me.id) {
+        if ((theirs.ua || 0) > (mine.ua || 0)) { backupDoc(mine, 'cloud'); delete S.dirty[id]; return; }
+        backupDoc(theirs, 'cloud');
+      }
+      next[id] = mine;
+    });
     Object.keys(S.docs).forEach(id => {
       if (!next[id]) {
-        (S.docs[id].photos || []).forEach(p => N.deletePhotoLocal(p));
+        archiveDoc(S.docs[id], 'cloud');
         S.lanDel = S.lanDel || {};
         S.lanDel[id] = Date.now(); // başka cihazda silinmiş: Wi‑Fi eşitlemesi geri getirmesin
       }
@@ -389,7 +396,7 @@ async function syncNow() {
     if (S.sync.adminUid === S.sync.uid) {
       // The main phone finishes deletions made on devices with full rights, and restores rejected marks.
       tombsSeen.forEach(d => {
-        if (isTomb(d)) { if (!S.delQ.includes(d.id)) S.delQ.push(d.id); (d.photos || []).forEach(p => { if (!S.photoDel.includes(p)) S.photoDel.push(p); N.deletePhotoLocal(p); }); }
+        if (isTomb(d)) { if (!S.delQ.includes(d.id)) S.delQ.push(d.id); (d.photos || []).forEach(p => { if (!S.photoDel.includes(p)) S.photoDel.push(p); }); }
         else if (S.docs[d.id]) S.dirty[d.id] = 1;
       });
       await autoFullRights();
@@ -563,6 +570,7 @@ function applyLang() {
   document.documentElement.lang = S.settings.lang;
   document.documentElement.dir = S.settings.lang === 'ar' ? 'rtl' : 'ltr';
   N.setLang(S.settings.lang);
+  if (window.Kabuk) Kabuk.langChanged(S.settings.lang);
 }
 
 function render() {
@@ -573,16 +581,10 @@ function render() {
     ['shop', '🛒', t('tab_shop')], ['tasks', '✅', t('tab_tasks')], ['net', '📶', t('tab_net')], ['elec', '⚡', t('tab_elec')], ['maint', '🔧', t('tab_maint')]
   ];
   const qFocus = document.activeElement && document.activeElement.id === 'q' ? document.activeElement.selectionStart : null;
+  // 5.7: başlık ve sağ üst düğmeler index.html'deki sabit #topbar'da (ortak çekirdek); burada yalnız içerik
+  const pt = document.getElementById('pageTitle'); if (pt) pt.textContent = t('app_name');
   app().innerHTML = `
-    <header class="bar">
-      <h1>${esc(t('app_name'))} <span class="ver">v${esc(N.version())}</span></h1>
-      <span id="syncdot"></span>
-      <button class="icon-btn" data-act="lan" title="${esc(t('lan_title'))}" aria-label="${esc(t('lan_title'))}">📶</button>
-      ${winModeBtn()}
-      <button class="icon-btn" data-act="settings" aria-label="${esc(t('settings'))}">⚙️</button>
-      ${isDesktop() && typeof N.quitApp === 'function' ? `<button class="exitbtn" data-act="exitapp" title="${esc(t('exit_app'))}">✕ ${esc(t('exit_app'))}</button>` : ''}
-    </header>
-    <main class="content" id="main">${updateBanner()}${renderTab()}</main>
+    <main class="content" id="main">${renderTab()}</main>
     <button class="fab" data-act="add" aria-label="${esc(t('add'))}">＋</button>
     <nav class="tabs">${tabs.map(([k, ic, l]) => `<button class="tab ${ui.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ic}</span><small>${esc(l)}</small></button>`).join('')}</nav>`;
   renderSyncDot();
@@ -591,12 +593,12 @@ function render() {
 }
 
 function renderSyncDot() {
-  const el = $('#syncdot');
-  if (!el) return;
-  if (!S.sync.enabled) { el.innerHTML = ''; return; }
-  const cls = ui.syncing ? 'busy' : S.sync.lastError ? 'err' : 'ok';
-  const txt = ui.syncing ? t('syncing') : S.sync.lastError ? t('sync_error') : t('synced');
-  el.innerHTML = `<button class="sync ${cls}" data-act="syncnow">☁ ${esc(txt)}</button>`;
+  // Üst çubuktaki Eşitle düğmesi: idle | syncing | error | off | offline (+ gönderilmeyi bekleyen kayıt sayısı)
+  if (!window.Kabuk) return;
+  const pending = Object.keys(S.dirty || {}).length + (S.delQ || []).length + (S.photoUp || []).length;
+  const st = !S.sync.enabled ? 'off' : ui.syncing ? 'syncing' : (navigator.onLine === false ? 'offline' : S.sync.lastError ? 'error' : 'idle');
+  Kabuk.setSync(st, S.sync.enabled ? pending : 0);
+  Kabuk.setLan(!window.LanCore || !LanCore.available() ? 'off' : LanCore.busy() ? 'busy' : 'on');
 }
 
 function itemRow(d, opts = {}) {
@@ -793,245 +795,9 @@ function renderTasks() {
   return html;
 }
 
-/* ---------- In-app updates ---------- */
-
-function updateCreds() {
-  if (S.sync.apiKey && S.sync.projectId) return { k: S.sync.apiKey, p: S.sync.projectId };
-  if (hasBuiltin()) return { k: BUILTIN_FB.apiKey, p: BUILTIN_FB.projectId };
-  return null;
-}
-
-function updateBanner() {
-  const u = ui.update;
-  if (!u || !u.available) return '';
-  if (u.busy || u.prog || u.error) return updCardHtml(u);
-  return `<div class="card upd"><span>🆕 ${esc(t('upd_ready', { v: 'v' + u.version }))}</span>
-    <button class="btn primary small" data-act="update">${esc(t('upd_now'))}</button></div>`;
-}
-
-function updateStatusHtml() {
-  const u = ui.update || {};
-  if (u.available && (u.busy || u.prog)) return updCardHtml(u);
-  let msg = '';
-  if (!updateCreds()) msg = t('upd_no_fb');
-  else if (u.error) msg = t('upd_fail', { e: u.error });
-  else if (u.available) msg = t('upd_ready', { v: 'v' + u.version }) + (u.needApk ? ' ' + t('upd_apk') : '');
-  else if (u.checked) msg = t('upd_latest');
-  return `${msg ? `<p class="muted small">${esc(msg)}</p>` : ''}
-    <div class="actions">
-      <button class="btn" data-act="updcheck" ${u.busy ? 'disabled' : ''}>🔄 ${esc(t('upd_check'))}</button>
-      ${u.available ? `<button class="btn primary" data-act="update" ${u.busy ? 'disabled' : ''}>⬆️ ${esc(u.error ? t('upd_retry') : t('upd_now'))} (v${esc(u.version)})</button>` : ''}
-    </div>`;
-}
-
-/* ---------- Update download card: percent, MB done / total, what is left, speed, time left ---------- */
-
-function fmtNum(b, dec) {
-  return ((b || 0) / 1048576).toLocaleString(locale(), { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-function fmtMB(b, dec) {
-  return fmtNum(b, dec === undefined ? ((b || 0) < 1048576 ? 2 : 1) : dec) + ' MB';
-}
-/** "6,4 / 10,4 MB" */
-function fmtPair(a, total) {
-  const dec = total < 1048576 ? 2 : 1;
-  return (a === null ? '—' : fmtNum(a, dec)) + ' / ' + fmtMB(total, dec);
-}
-function fmtDur(sec) {
-  sec = Math.max(1, Math.round(sec));
-  if (sec < 60) return t('upd_sec', { n: sec });
-  const m = Math.floor(sec / 60), r = sec % 60;
-  return t('upd_min', { n: m }) + (r ? ' ' + t('upd_sec', { n: r }) : '');
-}
-
-/** Numbers for the card; null fields mean "not known" (phones report only the start and the end). */
-function updNumbers(u) {
-  const p = u.prog || {};
-  const total = p.total || u.size || 0;
-  const live = p.live && total > 0;
-  const got = Math.min(p.got || 0, total || Infinity);
-  const pct = live ? Math.min(100, Math.floor(got * 100 / total)) : p.phase === 'install' || p.phase === 'restart' ? 100 : null;
-  let speed = null;
-  const sm = p.samples || [];
-  if (live && sm.length > 1) {
-    const a = sm[0], z = sm[sm.length - 1];
-    if (z.ms > a.ms) speed = (z.got - a.got) * 1000 / (z.ms - a.ms);
-  }
-  const left = live ? Math.max(0, total - got) : null;
-  const eta = live && speed > 0 ? left / speed : left === 0 ? 0 : null;
-  return { total, got, live, pct, speed, left, eta };
-}
-
-function updCardHtml(u) {
-  return `<div class="card updx" data-updx>${updCardInner(u)}</div>`;
-}
-
-function updCardInner(u) {
-  const p = u.prog || {};
-  const n = updNumbers(u);
-  const pctTxt = n.pct === null ? '' : (n.pct / 100).toLocaleString(locale(), { style: 'percent' });
-  const st = u.error ? t('upd_fail', { e: u.error }) : p.phase === 'restart' ? t('upd_done') : p.phase === 'install' ? t('upd_installing') : t('upd_busy');
-  const dash = '—';
-  const box = (k, v) => `<div class="updx-box"><small>${esc(t(k))}</small><b>${esc(v)}</b></div>`;
-  return `<div class="updx-title">🆕 ${esc(t('upd_ready_title', { v: 'v' + u.version }))}</div>
-    <div class="updx-row"><span class="${u.error ? 'updx-err' : ''}">${esc(st)}</span><b>${esc(pctTxt)}</b></div>
-    <div class="updx-bar${n.pct === null && !u.error ? ' indet' : ''}${u.error ? ' err' : ''}"><i style="width:${n.pct === null ? 100 : n.pct}%"></i></div>
-    ${u.error ? '' : `<div class="updx-grid">
-      ${box('upd_got', !n.total ? dash : fmtPair(n.live || n.pct === 100 ? (n.pct === 100 ? n.total : n.got) : null, n.total))}
-      ${box('upd_left', n.left === null ? (n.pct === 100 ? fmtMB(0) : dash) : fmtMB(n.left))}
-      ${box('upd_speed', n.speed ? fmtMB(n.speed) + t('upd_per_s') : dash)}
-      ${box('upd_eta', n.eta === null ? (n.pct === 100 ? fmtDur(0).replace(/\d+/, '0') : dash) : n.eta < 0.5 ? fmtDur(0).replace(/\d+/, '0') : fmtDur(n.eta))}
-    </div>`}
-    ${u.error ? `<div class="actions"><button class="btn primary" data-act="update">🔄 ${esc(t('upd_retry'))}</button></div>` : ''}`;
-}
-
-/** Redraws only the card(s), so the screen does not flicker 6 times a second. */
-function paintUpdCard() {
-  const u = ui.update;
-  const cards = document.querySelectorAll('[data-updx]');
-  if (!u || !cards.length) { refreshUpdateUi(); return; }
-  const html = updCardInner(u);
-  cards.forEach(c => { c.innerHTML = html; });
-}
-
-/** The desktop app reports every received chunk. */
-window.onUpdProgress = p => {
-  const u = ui.update;
-  if (!u || !u.busy) return;
-  const pr = u.prog || (u.prog = { samples: [] });
-  pr.live = true;
-  pr.phase = p.phase;
-  pr.got = p.got;
-  pr.total = p.total;
-  pr.lastAt = Date.now();
-  pr.samples.push({ got: p.got, ms: p.ms });
-  // speed over the last ~2.5 seconds
-  while (pr.samples.length > 2 && p.ms - pr.samples[0].ms > 2500) pr.samples.shift();
-  paintUpdCard();
-};
-
-/** Bundle size for the phone card (the desktop check already sends it). */
-async function updSizeFromManifest() {
-  try {
-    const g = await nat('http', 'GET', 'https://raw.githubusercontent.com/departures-mil/aile-ajandasi/main/guncelleme/upd_latest.json', '', false);
-    if (g && g.status === 200) { const j = JSON.parse(g.body); if (j.bytes) return j.bytes; }
-  } catch (e) { /* GitHub yoksa aile kopyası */ }
-  try {
-    const r = await nat('http', 'GET', `${fsBase()}/${famPath('photos/upd_latest')}`, '', true);
-    if (!r || r.status !== 200) return 0;
-    const l = JSON.parse(JSON.parse(r.body).fields.data.stringValue);
-    if (Array.isArray(l.partChars)) return l.partChars.reduce((a, b) => a + b + 260, 0);
-    return l.bytes ? Math.round(l.bytes * 4 / 3) : 0;
-  } catch (e) { return 0; }
-}
-
-function refreshUpdateUi() {
-  const top = ui.stack[ui.stack.length - 1];
-  if ($('#modal') || (top && top.type === 'edit')) return;
-  render();
-}
-
-async function checkUpdate(manual) {
-  const c = updateCreds();
-  if (typeof N.updateCheck !== 'function' || !c) { if (manual) refreshUpdateUi(); return; }
-  if ((ui.update && ui.update.busy) || (ui.updChecking && !manual)) return;
-  const before = JSON.stringify(ui.update || null);
-  ui.updChecking = true;
-  const r = await nat('updateCheck', c.k, c.p);
-  ui.updChecking = false;
-  if (r && r.ok) ui.update = { available: !!r.available, version: r.version, needApk: !!r.needApk, notes: r.notes || '', size: r.size || 0, checked: true };
-  else ui.update = Object.assign({}, ui.update, { error: manual ? (r && r.error) || '?' : '', checked: true });
-  if (manual && r && r.ok && !r.available) N.toast(t('upd_latest'));
-  // Frequent background checks redraw the screen only when something changed.
-  if (manual || JSON.stringify(ui.update) !== before) refreshUpdateUi();
-  if (!manual && ui.update.available && isDesktop() && document.hidden && notifiedVer !== ui.update.version && typeof N.notifyNow === 'function') {
-    // The window is hidden in the tray: say it with a Windows notification.
-    notifiedVer = ui.update.version;
-    N.notifyNow('🆕 ' + t('upd_ready', { v: 'v' + ui.update.version }), tx(ui.update.notes || ''), '');
-  }
-  if (!manual && !ui.updatedShown) { ui.updatedShown = true; announceUpdated(); }
-  if (!manual && ui.update.available) announceUpdate();
-}
-
-/* ---------- Update notices ---------- */
-
-let announcedVer = '';
-let notifiedVer = '';
-
-
-/** A new version is waiting: say so in a box once per app start (and when one appears while the app is open). */
-/** A new version is waiting: say so in a box once per app start. */
-function announceUpdate() {
-  const u = ui.update;
-  if (!u || !u.available || u.busy || announcedVer === u.version) return;
-  if ($('#modal') || $('#viewer')) { setTimeout(announceUpdate, 5000); return; }
-  announcedVer = u.version;
-  openModal(`<h3>🆕 ${esc(t('upd_ready', { v: 'v' + u.version }))}</h3>
-    ${u.notes ? `<p class="mtext">${esc(tx(u.notes))}</p>` : ''}
-    ${u.needApk ? `<p class="muted small">${esc(t('upd_apk'))}</p>` : ''}
-    <div class="mbtns"><button class="btn" data-act="mclose">${esc(t('upd_later'))}</button><button class="btn primary" id="m-ok">⬆️ ${esc(t('upd_now'))}</button></div>`,
-    root => { root.querySelector('#m-ok').onclick = () => { closeModal(); doUpdate(); }; });
-}
-
-/** First start after an update: show what is new. */
-function announceUpdated() {
-  const ver = N.version();
-  const seen = S.settings.seenVer;
-  S.settings.seenVer = ver;
-  if (seen === ver || ver === 'preview') return;
-  const latest = ui.update && ui.update.version === ver ? ui.update.notes : '';
-  const notes = S.settings.updNotes && S.settings.updNotes.v === ver ? S.settings.updNotes.n : latest || '';
-  delete S.settings.updNotes;
-  saveNow();
-  openModal(`<h3>✅ ${esc(t('upd_installed', { v: 'v' + ver }))}</h3>
-    ${notes ? `<p class="mtext">${esc(tx(notes))}</p>` : ''}
-    <div class="mbtns"><button class="btn primary" data-act="mclose">${esc(t('ok'))}</button></div>`);
-}
-
-const UPD_TIMEOUT = 5 * 60000;   // the whole download + install
-const UPD_STALL = 150000;        // desktop: no new bytes for this long (the app itself retries 4 times first)
-
-async function doUpdate() {
-  const c = updateCreds();
-  const u = ui.update;
-  if (!c || !u || !u.available || u.busy) return;
-  u.busy = true; u.error = '';
-  u.prog = { samples: [], phase: 'dl', got: 0, total: u.size || 0, lastAt: Date.now() };
-  refreshUpdateUi();
-  paintUpdCard();
-  S.settings.updNotes = { v: u.version, n: u.notes || '' };
-  saveNow();
-  if (!u.size && !u.needApk && S.sync.enabled) updSizeFromManifest().then(sz => { if (sz && u.busy) { u.size = sz; if (!u.prog.total) u.prog.total = sz; paintUpdCard(); } });
-  // Never wait forever: a hard limit, plus (on the desktop) a stall check on the live byte count.
-  let watch = null;
-  const guard = new Promise(res => {
-    const t0 = Date.now();
-    watch = setInterval(() => {
-      const p = u.prog || {};
-      if (Date.now() - t0 > UPD_TIMEOUT) res({ ok: false, error: 'timeout' });
-      else if (p.live && p.phase === 'dl' && Date.now() - p.lastAt > UPD_STALL) res({ ok: false, error: 'timeout' });
-    }, 2000);
-  });
-  const call = u.needApk && typeof N.updateApk === 'function' ? nat('updateApk', c.k, c.p) : nat('updateApply', c.k, c.p);
-  const r = await Promise.race([call, guard]);
-  clearInterval(watch);
-  u.busy = false;
-  if (r && r.ok) {
-    if (u.needApk) { u.prog = null; refreshUpdateUi(); return; }
-    u.prog = Object.assign(u.prog || {}, { phase: 'restart', got: (u.prog && u.prog.total) || u.size || 0 });
-    if (u.prog.total) u.prog.live = true;
-    paintUpdCard();
-    N.toast(t('upd_done'));
-    setTimeout(() => N.restartApp(), 1200);
-  } else {
-    const e = (r && r.error) || '?';
-    u.error = /timeout|network|net::|ERR_|failed|reset|sign-in|unreachable|Unable to resolve/i.test(e) ? t('err_net') : e;
-    u.prog = null;
-    N.toast(t('upd_fail', { e: u.error }));
-    refreshUpdateUi();
-    paintUpdCard();
-  }
-}
+/* ---------- Güncelleme ----------
+   5.7: eski "raw upd_latest.json / Firebase" güncelleyicisi kaldırıldı. Güncelleme ortak çekirdekte (FC.updater):
+   GitHub Releases latest.json + yama, sağ üstteki her zaman görünen "Güncelle" düğmesi; "Neler yeni" FC.whatsnew. */
 
 /** This phone's person in the people list: chosen in settings, else the one named like me. */
 function myPerson() {
@@ -1121,6 +887,7 @@ function renderScreen(s) {
     </header>
     <main class="content screen">${body}</main>`;
   if (s.type === 'edit') { bindEdit(s); fitAll(app()); }
+  if (s.type === 'settings' && window.Kabuk) Kabuk.mountSettings(document.getElementById('fcAyarlar'));
 }
 
 /* ---------- Edit ---------- */
@@ -1294,6 +1061,54 @@ function saveEdit(s) {
 
 /* ---------- Settings ---------- */
 
+/* ---------- Arşiv ve yedekler (5.7: eşitleme hiçbir kaydı kalıcı silmez / üstüne yazmaz) ----------
+   S.arsiv     : başka cihazda (bulut ya da Wi-Fi) silindiği için bu cihazdan kalkan kayıtlar {at, src, d}
+   S.lanBackup : çakışmada kaybeden (eski) hal {at, src?, d} — Wi-Fi'de 5.x'ten beri, bulutta 5.7'den beri
+   Fotoğraf dosyaları arşivlenen kayıtlar için cihazda kalır. */
+function archiveDoc(d, src) {
+  if (!d || d.kind === 'lst' && d.def) return;
+  S.arsiv = S.arsiv || [];
+  const c = JSON.parse(JSON.stringify(d)); delete c.al;
+  S.arsiv.unshift({ at: Date.now(), src, d: c });
+}
+function backupDoc(d, src) {
+  if (!d) return;
+  S.lanBackup = [{ at: Date.now(), src, d: JSON.parse(JSON.stringify(d)) }].concat(S.lanBackup || []);
+}
+function restoreFrom(listName, idx) {
+  const list = S[listName] || [];
+  const e = list[idx];
+  if (!e || !e.d) return;
+  const c = JSON.parse(JSON.stringify(e.d));
+  delete c.del; delete c.delBy;
+  if (S.docs[c.id]) backupDoc(S.docs[c.id], 'restore');      // şimdiki hal kaybolmasın
+  list.splice(idx, 1);
+  delete (S.lanDel || {})[c.id];
+  putDoc(c);
+  N.toast(FC.t('aj.restored'));
+  render();
+}
+function archiveHtml() {
+  const T = k => (window.FC ? FC.t(k) : k);
+  const row = (e, i, listName) => `<div class="row static"><span class="kicon">${e.d && KINDS[e.d.kind] ? KINDS[e.d.kind].icon : e.d && e.d.kind === 'lst' ? '📋' : '📄'}</span>
+    <div class="rtext"><div class="rtitle">${esc((e.d && (e.d.kind === 'lst' ? lstName(e.d) : docTitle(e.d))) || '—')}</div>
+    <div class="rmeta">${esc(fmtWhen(e.at || 0))}${e.src ? ' · ' + esc(T('aj.from.' + e.src) !== 'aj.from.' + e.src ? T('aj.from.' + e.src) : e.src) : ''}</div></div>
+    <button class="btn small" data-restore="${listName}|${i}">↩ ${esc(T('aj.restore'))}</button></div>`;
+  const block = (title, listName) => {
+    const list = S[listName] || [];
+    const open = ui.archOpen === listName;
+    return `<div class="kv"><span>${esc(title)}</span><b>${list.length || esc(T('aj.none'))}</b></div>
+      ${list.length ? `<button class="link" data-archopen="${listName}">${esc(open ? T('aj.hide') : T('aj.show'))}</button>` : ''}
+      ${open ? `<div class="card">${list.slice(0, 200).map((e, i) => row(e, i, listName)).join('')}</div>` : ''}`;
+  };
+  return `<section class="card pad">
+      <h4>🗄️ ${esc(T('aj.arch'))}</h4>
+      <p class="muted small">${esc(T('aj.archDesc'))}</p>
+      ${block(T('aj.archived'), 'arsiv')}
+      ${block(T('aj.conflicts'), 'lanBackup')}
+    </section>`;
+}
+
 function renderSettings() {
   const sy = S.sync;
   let syncHtml;
@@ -1322,9 +1137,6 @@ function renderSettings() {
   return `
     <section class="card pad">
       ${field(t('my_name'), `<input id="myname" value="${esc(S.me.name)}" placeholder="${esc(t('my_name_ph'))}">`)}
-      <div class="field"><span>🌐 ${esc(t('language'))}</span><div class="seg">
-        ${[['tr', 'Türkçe'], ['en', 'English'], ['ar', 'العربية']].map(([k, l]) => `<button class="${S.settings.lang === k ? 'on' : ''}" data-lang="${k}">${l}</button>`).join('')}
-      </div></div>
     </section>
     <section class="card pad">
       <h4>📋 ${esc(t('lists'))}</h4>
@@ -1347,54 +1159,11 @@ function renderSettings() {
       <p class="muted small">${esc(t('lan_desc'))}</p>
       <button class="btn wide" data-act="lan">📶 ${esc(t('lan_open'))}</button>
     </section>
-    <section class="card pad">
-      <h4>⬆️ ${esc(t('upd_title'))}</h4>
-      <div class="kv"><span>${esc(t('app_name'))}</span><b>v${esc(N.version())}</b></div>
-      ${updateStatusHtml()}
-      <p class="muted small">${esc(t('upd_auto_note'))}</p>
-    </section>
-    <section class="card pad">
-      <h4>✉️ ${esc(t('ct_title'))}</h4>
-      <p class="muted small">${esc(t('ct_desc'))}</p>
-      ${field(t('ct_name'), `<input id="ctname" dir="auto" maxlength="80" value="${esc(S.me.name || '')}">`)}
-      ${field(t('ct_mail'), `<input id="ctmail" dir="ltr" maxlength="120" inputmode="email" placeholder="ornek@mail.com">`)}
-      ${field(t('ct_msg'), `<textarea id="ctmsg" dir="auto" maxlength="5000" rows="5"></textarea>`)}
-      <button class="btn primary wide" data-act="ctsend">✉️ ${esc(t('ct_send'))}</button>
-    </section>`;
+    ${archiveHtml()}
+    <div id="fcAyarlar"></div>`;
 }
 
-/* ---------- Contact the admin ----------
-   Messages go to the administrator's mailbox through FormSubmit; the address is not shown. */
-const ADMIN_TO = atob('bW9jLmxpYW1ub3RvcnBANDMyMWxkaW50bWxkYmE=').split('').reverse().join('');
-let ctBusy = false;
-async function sendContact() {
-  if (ctBusy) return;
-  const v = id => ((document.getElementById(id) || {}).value || '').trim();
-  const msg = v('ctmsg'), mail = v('ctmail'), name = v('ctname');
-  if (!msg) { N.toast(t('ct_empty')); return; }
-  if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) { N.toast(t('ct_badmail')); return; }
-  const body = { _subject: 'Ajandam: yeni mesaj', _template: 'table', _captcha: 'false', Ad: name || '-', Mesaj: msg, Surum: N.version(), Cihaz: N.platform ? N.platform() : 'android', Dil: S.settings.lang };
-  if (mail) { body.email = mail; body._replyto = mail; }
-  ctBusy = true; N.toast(t('ct_sending'));
-  try {
-    // 5.5: iki bağımsız kanal — yöneticinin mesaj kutusu (Firestore "mesajlar", yalnızca ekleme) + e-posta kopyası (FormSubmit).
-    // Biri kabul ederse mesaj ulaşmış sayılır.
-    const F = v => ({ stringValue: String(v || '').slice(0, 4000) });
-    const fields = { mesaj: F(msg), konu: F('Ajandam · Mesaj'), dil: F(S.settings.lang), surum: F(N.version()), platform: F('Ajandam · ' + (N.platform ? N.platform() : 'android')), zaman: { timestampValue: new Date().toISOString() } };
-    if (name) fields.ad = F(name);
-    if (mail) fields.iletisim = F(mail);
-    const [r, q] = await Promise.all([
-      nat('http', 'POST', 'https://formsubmit.co/ajax/' + ADMIN_TO, JSON.stringify(body), false),
-      nat('http', 'POST', 'https://firestore.googleapis.com/v1/projects/comm-calc-103111111/databases/(default)/documents/mesajlar?key=AIzaSyB12RFS6ENPpmnnPsETfjedNH-3hmNWQvA', JSON.stringify({ fields }), false),
-    ]);
-    let j = {}; try { j = JSON.parse((r && r.body) || '{}'); } catch (e) {}
-    if ((q && q.status >= 200 && q.status < 300) || (r && r.status >= 200 && r.status < 300 && String(j.success) === 'true')) {
-      const el = document.getElementById('ctmsg'); if (el) el.value = '';
-      N.toast(t('ct_sent'));
-    } else N.toast(t('ct_fail'));
-  } catch (e) { N.toast(t('ct_fail')); }
-  ctBusy = false;
-}
+/* 5.7: "Admin ile iletişim" ortak çekirdekte (FC.contact) — Ayarlar'ın en sonunda. */
 
 /* ---------- Lists manager ---------- */
 
@@ -2582,7 +2351,7 @@ function maintServDelete(id, sid) {
 
 document.addEventListener('click', async e => {
   if (e.target.closest('a[data-ext]')) return;
-  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn],[data-maintdone],[data-maintedit],[data-maintdel],[data-mtype],[data-mevery],[data-mwarn]');
+  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-restore],[data-archopen],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn],[data-maintdone],[data-maintedit],[data-maintdel],[data-mtype],[data-mevery],[data-mwarn]');
   if (!el) return;
   const ds = el.dataset;
   const top = ui.stack[ui.stack.length - 1];
@@ -2609,6 +2378,8 @@ document.addEventListener('click', async e => {
   if (ds.elecdel) { e.stopPropagation(); const [i, r] = ds.elecdel.split('|'); if (S.docs[i]) elecReadDelete(i, r); return; }
   if (ds.netpaydel) { e.stopPropagation(); const [i, x] = ds.netpaydel.split('|'); if (S.docs[i]) netPayDelete(i, +x); return; }
   if (ds.copycode) { N.copy(ds.copycode); N.toast(t('copied')); return; }
+  if (ds.archopen) { ui.archOpen = ui.archOpen === ds.archopen ? '' : ds.archopen; render(); return; }
+  if (ds.restore) { const [ln, i] = ds.restore.split('|'); if (ln === 'arsiv' || ln === 'lanBackup') restoreFrom(ln, +i); return; }
   if (ds.tab) { if (ui.tab !== ds.tab) ui.q = ''; ui.tab = ds.tab; render(); window.scrollTo(0, 0); return; }
   if (ds.open) { const d = S.docs[ds.open]; if (d) openEdit(d, false); return; }
   if (ds.cat !== undefined && el.classList.contains('chip')) { ui.shopCat = ds.cat; render(); return; }
@@ -2742,15 +2513,6 @@ document.addEventListener('click', async e => {
 
   switch (ds.act) {
     case 'settings': push({ type: 'settings' }); break;
-    case 'winmode': N.toggleFullScreen(); break;
-    case 'exitapp':
-      openModal(`<h3>✕ ${esc(t('exit_app'))}</h3>
-        <div class="mbtns col"><button class="btn primary" id="m-tray">⬇️ ${esc(t('exit_tray'))}</button><button class="btn danger" id="m-quit">⏻ ${esc(t('exit_quit'))}</button><button class="btn" data-act="mclose">${esc(t('cancel'))}</button></div>`,
-        root => {
-          root.querySelector('#m-tray').onclick = () => { closeModal(); saveNow(); N.closeWindow(); };
-          root.querySelector('#m-quit').onclick = () => { closeModal(); saveNow(); N.quitApp(); };
-        });
-      break;
     case 'back': pop(); break;
     case 'add':
       if (ui.tab === 'agenda') chooseKind();
@@ -2774,11 +2536,8 @@ document.addEventListener('click', async e => {
     }
     case 'mclose': closeModal(); break;
     case 'syncnow': syncNow(); break;
-    case 'ctsend': sendContact(); break;
     case 'lan': LanCore.open(); break;
     case 'clearq': ui.q = ''; render(); break;
-    case 'updcheck': checkUpdate(true); break;
-    case 'update': doUpdate(); break;
     case 'create': createFamilyDialog(); break;
     case 'join': joinFamilyDialog(); break;
     case 'help': closeModal(); push({ type: 'help' }); break;
@@ -2826,8 +2585,8 @@ window.openDoc = id => {
 let lastUpdCheck = 0;
 window.onResumeApp = () => {
   translateAll();
-  // Coming back to the app counts as opening it: look for a new version and say so again.
-  if (Date.now() - lastUpdCheck > 30000) { lastUpdCheck = Date.now(); announcedVer = ''; checkUpdate(false); }
+  // Uygulamaya dönmek açılış sayılır: yeni sürüm sessizce denetlenir (sağ üstteki Güncelle düğmesi gösterir)
+  if (Date.now() - lastUpdCheck > 30 * 60000 && window.FC && FC.updater) { lastUpdCheck = Date.now(); FC.updater.check({ silent: true }).catch(() => {}); }
   if (S.sync.enabled) syncNow();
   else if (!ui.stack.length) render();
   setTimeout(() => LanCore.autoTry(), 2500);
@@ -2844,6 +2603,7 @@ function lanApply(merged, rep) {
   });
   Object.keys(before).forEach(id => {
     if (next[id]) return;
+    archiveDoc(before[id], 'lan');   // 5.7: Wi-Fi'de karşı cihazda silinen kayıt burada arşivlenir (kalıcı silinmez)
     delete S.dirty[id];
     if (S.sync.enabled) {
       if (S.sync.adminUid !== S.sync.uid) { S.tomb = S.tomb || {}; S.tomb[id] = Object.assign({}, before[id], { del: true, delBy: S.sync.uid, ua: Date.now() }); delete S.tomb[id].al; }
@@ -2852,7 +2612,7 @@ function lanApply(merged, rep) {
   });
   S.docs = next;
   S.lanDel = merged.dels;
-  if (merged.conflicts.length) S.lanBackup = merged.conflicts.map(d => ({ at: Date.now(), d })).concat(S.lanBackup || []).slice(0, 300);
+  if (merged.conflicts.length) S.lanBackup = merged.conflicts.map(d => ({ at: Date.now(), src: 'lan', d })).concat(S.lanBackup || []);
   saveNow();
   scheduleSync();
 }
@@ -2881,17 +2641,16 @@ LanCore.init({
 /* ================= Start ================= */
 
 load();
+if (window.Kabuk) S.settings.lang = Kabuk.initialLang(S.settings.lang) || S.settings.lang;
 applyLang();
 if (isDesktop()) document.body.classList.add('desktop');
 document.title = t('app_name') + ' v' + N.version();
-N.setBarColor('#2E6B5E');
 render();
 saveNow();
 translateAll();
 if (typeof N.otaOk === 'function') N.otaOk();
-setTimeout(() => { lastUpdCheck = Date.now(); checkUpdate(false); }, 1500);
-// Without family sync there is no update check; still say when the version changed.
-setTimeout(() => { if (!ui.updatedShown) { ui.updatedShown = true; announceUpdated(); } }, 8000);
+lastUpdCheck = Date.now();
+if (window.Kabuk) Kabuk.started();
 const pending = N.takeOpenDoc();
 if (pending) window.openDoc(pending);
 if (S.sync.enabled) syncNow();

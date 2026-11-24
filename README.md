@@ -1,5 +1,22 @@
 # Ajandam (Aile Ajandası)
 
+## 5.7.0 — ortak çekirdek (GÜNCEL DÜZEN; aşağıdaki eski notlardan önceliklidir)
+- Sürüm tek: `desktop/package.json` → `node tools/surum.js X.Y.Z` (www/surum.js, package.json, Android versionName/versionCode = X*10000+Y*100+Z).
+- Güncelleme yalnız **GitHub Releases** (`latest.json` + delta yama, ortak çekirdek `FC.updater`): masaüstü `win-app` (app.asar) +
+  `win-setup` (NSIS, kullanıcı başına, tek tık), telefon `android` (APK; yama = kurulu APK + FCD1 → yeni APK, `FcBridge.java`).
+  Yayın: main'de Actions → release → Run workflow (test → derleme → release). Testler geçmezse yayın olmaz.
+- Masaüstü veri yeri: kurulu sürüm `%APPDATA%\Ajandam\data`. Eski taşınabilir sürüm `exe yanındaki data\`; kurulu sürüm ilk açılışta
+  `%APPDATA%\Ajandam\eski-konum.json`'daki yerden veriyi KOPYALAR (orijinale dokunmaz) ya da Ayarlar → "Eski Ajandam klasöründen veri al".
+- Ortak arayüz `www/` (çekirdek `www/cekirdek/`, kabuk `www/kabuk.js`); `node tools/hazirla.js` → `desktop/www` + Android assets (depoda tutulmaz).
+- Eşitleme kuralı: hiçbir kayıt silinmez/üstüne yazılmaz — başka cihazda silinen → Arşiv, çakışma → yedek (Ayarlar → Arşiv ve yedekler).
+- **Eski kanal köprüsü** (`guncelleme/`, ECDSA): yalnız ≤5.6 kurulumları için. Release'ten SONRA Milen'in bilgisayarında:
+  `python tools/kopru.py --firebase` (anahtar `keys/update-private.pem`, depoda yok).
+- APK imza şifresi depoda YOK: ortam değişkeni `AJANDAM_KS_PASS` (+ `AJANDAM_KS_FILE`, `AJANDAM_KEY_ALIAS`) ya da gitignore'lu
+  `android/keystore.properties`; CI secret'ları `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS`.
+- Test: `npm test` (node duman testi + 3 Electron açılış testi, xvfb). Ekran: `node tools/ekran.js <klasör>`.
+
+## Eski notlar (5.6 ve öncesi)
+
 Aile ajandası: Windows masaüstü (Electron, taşınabilir) + Android. Kayıtlar ailenin Firebase'i ve aynı Wi‑Fi üzerinden
 eşitlenir; **kayıtlar bu depoda bulunmaz**.
 

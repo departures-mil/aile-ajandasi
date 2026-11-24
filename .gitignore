@@ -2,6 +2,15 @@ keys/
 *.jks
 node_modules/
 android/app/build/
+android/.gradle/
 android/keystore.properties
 keystore.properties
 *.keystore
+dist/
+desktop/www/
+desktop/data/
+tools/__pycache__/
+*.pyc
+android/app/src/main/assets/www/*
+!android/app/src/main/assets/www/twemoji/
+desktop/package-lock.json
