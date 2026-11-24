@@ -45,6 +45,9 @@ def release_ok(version):
         raise SystemExit(f'v{version} release bulunamadı ({e}). Önce GitHub Release yayınlanmalı.')
     if man.get('version') != version or 'win-setup' not in man.get('assets', {}):
         raise SystemExit('latest.json beklenen sürüm/kanal (win-setup) değil: ' + json.dumps(man)[:300])
+    if 'android' not in man.get('assets', {}):
+        print('UYARI: bu sürümde Android APK yok (CI secret\'ları eksik). Eski telefonlar yeni arayüzü alır ve "Sürümler sayfası"na '
+              'yönlendirilir; APK yayınlanana kadar orada telefon dosyası görünmez. İsterseniz önce APK\'lı bir sürüm yayınlayın.')
     return man
 
 
