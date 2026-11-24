@@ -14,12 +14,22 @@ android {
         versionName "5.2"
     }
 
+    // İmza: şifreler DEPODA YOK. Sıra: ortam değişkenleri (CI: AJANDAM_KS_FILE / AJANDAM_KS_PASS / AJANDAM_KEY_ALIAS /
+    // AJANDAM_KEY_PASS) → depo dışı android/keystore.properties (gitignore'da: storeFile=, storePassword=, keyAlias=, keyPassword=).
+    // Anahtar dosyası sahibin bilgisayarında: C:\Claude Programlarım\_Anahtarlar\Ajandam
+    def ksProps = new Properties()
+    def ksPropsFile = rootProject.file("keystore.properties")
+    if (ksPropsFile.exists()) { ksPropsFile.withInputStream { ksProps.load(it) } }
+    def ks = { String env, String prop, String def0 -> System.getenv(env) ?: ksProps.getProperty(prop) ?: def0 }
+    def ksFile = ks("AJANDAM_KS_FILE", "storeFile", "../../keys/ajandam-release.jks")
+    def ksPass = ks("AJANDAM_KS_PASS", "storePassword", null)
+
     signingConfigs {
         release {
-            storeFile file("../../keys/ajandam-release.jks")
-            storePassword "ajandam-2026"
-            keyAlias "ajandam"
-            keyPassword "ajandam-2026"
+            storeFile file(ksFile)
+            storePassword ksPass
+            keyAlias ks("AJANDAM_KEY_ALIAS", "keyAlias", "ajandam")
+            keyPassword ks("AJANDAM_KEY_PASS", "keyPassword", ksPass)
         }
     }
 
