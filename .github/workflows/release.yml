@@ -1,0 +1,126 @@
+# Ajandam — test → derleme (Windows: NSIS kurulum + app.asar · Android: imzalı APK) → GitHub Release (ortak çekirdek, delta yamalar).
+# Yayın: node tools/surum.js X.Y.Z, main'e birleştirin, Actions → release → "Run workflow" (main) ya da `git tag vX.Y.Z && git push --tags`.
+# Entegrasyon dallarında (ortak-cekirdek-*) yalnız test + derleme çalışır.
+# Android imzası için depo secret'ları: ANDROID_KEYSTORE_B64 (anahtar dosyasının base64'ü), ANDROID_KEYSTORE_PASS, ANDROID_KEY_ALIAS
+# (yoksa "ajandam"). Secret'lar yoksa Android kanalı atlanır (yalnız masaüstü yayınlanır) — değerler depoya ASLA yazılmaz.
+name: release
+on:
+  push:
+    tags: ['v*']
+    branches: ['ortak-cekirdek-*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Electron için sistem kitaplıkları
+        run: sudo apt-get update -q && sudo apt-get install -y -q xvfb libnss3 libgbm1 libasound2t64 libgtk-3-0 >/dev/null || sudo apt-get install -y -q xvfb libnss3 libgbm1 libgtk-3-0
+      - name: npm test (node duman testi + Electron açılış testleri, xvfb)
+        run: npm test
+      - name: Etiket = sürüm
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v="$(node -p "require('./desktop/package.json').version")"
+          [ "v$v" = "${GITHUB_REF_NAME}" ] || { echo "::error::etiket ${GITHUB_REF_NAME} ≠ desktop/package.json v$v"; exit 1; }
+
+  build-win:
+    needs: test
+    runs-on: windows-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - id: ver
+        shell: bash
+        run: echo "version=$(node -p "require('./desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: NSIS kurulum + app.asar
+        run: npm run dist
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Yayınlanacak dosyaları topla
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release
+          cp dist/win-unpacked/resources/app.asar release/app.asar
+          cp dist/*Setup*.exe release/
+          ls -la release
+          sha256sum release/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-win
+          path: release/
+          retention-days: 5
+
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.files.outputs.files }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: İmzalı APK (secret varsa)
+        id: apk
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          AJANDAM_KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          AJANDAM_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          if [ -z "${KS_B64}" ] || [ -z "${AJANDAM_KS_PASS}" ]; then
+            echo "::warning::ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASS secret'ları yok: Android kanalı bu sürümde atlandı."
+            echo "built=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          [ -n "${AJANDAM_KEY_ALIAS}" ] || export AJANDAM_KEY_ALIAS=ajandam
+          echo "${KS_B64}" | base64 -d > "$RUNNER_TEMP/ajandam.keystore"
+          python3 tools/apk.py "$RUNNER_TEMP/ajandam.keystore" - release/Ajandam.apk
+          rm -f "$RUNNER_TEMP/ajandam.keystore"
+          sha256sum release/*.apk
+          echo "built=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.apk.outputs.built == 'true'
+        with:
+          name: release-android
+          path: release/
+          retention-days: 5
+      - name: Yayın kanalları
+        id: files
+        run: |
+          {
+            echo 'files<<EOF'
+            echo 'win-app=app.asar'
+            echo 'win-setup=*Setup*.exe'
+            if [ "${{ steps.apk.outputs.built }}" = "true" ]; then echo 'android=Ajandam.apk'; fi
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: [test, build-win, build-android]
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: write
+    uses: departures-mil/ortak-cekirdek/.github/workflows/reusable-release.yml@main
+    with:
+      app_id: aile-ajandasi
+      version: ${{ needs.build-win.outputs.version }}
+      file_prefix: Ajandam
+      release_title: Ajandam v${{ needs.build-win.outputs.version }}
+      files: ${{ needs.build-android.outputs.files }}
+      notes_json: release-notes.json
+      core_ref: main

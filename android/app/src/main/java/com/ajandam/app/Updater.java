@@ -31,9 +31,10 @@ public final class Updater {
     private Updater() {}
 
     public static final String PUBKEY = "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMdYJKGu2BpJT/N9oK9TMsUfmeJqMStUAtvlsA9wHYfk9Z6cJo5zdvTBSJpChyTNe3nGbSP/DJI7YTrnr2zij7w==";
-    /** Code of the www bundled in this APK's assets (bumped together with the published bundle it matches). */
-    public static final int BUILTIN_WWW_CODE = 35;
-    public static final String BUILTIN_WWW_VERSION = "5.2";
+    /** Code of the www bundled in this APK's assets. 5.7 (ortak çekirdek): güncellemeler GitHub Releases'tan APK olarak gelir;
+     *  eski kanalın indirilmiş www paketleri (kod ≤ 40, köprü dahil) bu APK'nın kendi dosyalarını asla örtmesin diye 1000. */
+    public static final int BUILTIN_WWW_CODE = 1000;
+    public static final String BUILTIN_WWW_VERSION = "5.7.0";
 
     public static File otaDir(Context c) { return new File(c.getFilesDir(), "ota"); }
     static File otaNew(Context c) { return new File(c.getFilesDir(), "ota-new"); }

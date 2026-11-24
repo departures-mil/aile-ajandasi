@@ -1,0 +1,71 @@
+{
+  "name": "aile-ajandasi-build",
+  "private": true,
+  "version": "5.7.0",
+  "description": "Ajandam (Aile Ajandası) — derleme ve test. Uygulamanın kendi bildirimi desktop/package.json (name/productName DEĞİŞMEZ).",
+  "author": "departures-mil",
+  "license": "UNLICENSED",
+  "scripts": {
+    "hazirla": "node tools/hazirla.js",
+    "surum": "node tools/surum.js",
+    "test": "node tools/hazirla.js && node --test test/app.test.js test/electron-smoke.test.js",
+    "start": "node tools/hazirla.js && electron desktop",
+    "dist": "node tools/hazirla.js && electron-builder --win nsis --x64 --publish never"
+  },
+  "build": {
+    "appId": "com.aile.uygulamasi.desktop",
+    "productName": "Ajandam",
+    "directories": {
+      "app": "desktop",
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "lan-server.js",
+      "package.json",
+      "icon.png",
+      "cekirdek/**/*",
+      "www/**/*",
+      "!data/**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ajandam",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "multiLanguageInstaller": true,
+      "installerLanguages": [
+        "tr_TR",
+        "en_US",
+        "ar_SA"
+      ],
+      "language": "1055",
+      "artifactName": "Ajandam-Setup-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}

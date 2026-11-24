@@ -56,7 +56,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle saved) {
         super.onCreate(saved);
-        Updater.promote(this);
+        Updater.promote(this);   // 5.7: eski indirilmiş www paketlerini kaldırır (güncelleme artık APK ile, ortak çekirdek)
+        FcBridge.cleanup(this);
         Notify.ensureChannels(this);
         SyncJob.schedule(this);
         pendingDoc = getIntent() != null && getIntent().hasExtra("docId") ? getIntent().getStringExtra("docId") : "";
@@ -71,6 +72,7 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
         web.setBackgroundColor(Color.parseColor("#F4F5F2"));
         web.addJavascriptInterface(new Bridge(), "Android");
+        web.addJavascriptInterface(new FcBridge(this), "AndroidBridge");   // ortak çekirdek: Kapat, güncelleme, bildirim
         web.setWebChromeClient(new WebChromeClient() {
             // Yerel ağ eşitlemesinde QR kodu canlı kamerayla okumak için
             @Override
@@ -92,7 +94,7 @@ public class MainActivity extends Activity {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
                 Uri u = req.getUrl();
-                if (!HOST.equals(u.getHost())) return null;
+                if (!HOST.equals(u.getHost())) return FcBridge.ghProxy(req);   // GitHub Releases (latest.json, yama, APK)
                 return serve(u.getPath());
             }
 
@@ -160,6 +162,8 @@ public class MainActivity extends Activity {
         if (n.endsWith(".png")) return "image/png";
         if (n.endsWith(".jpg")) return "image/jpeg";
         if (n.endsWith(".json")) return "application/json";
+        if (n.endsWith(".woff2")) return "font/woff2";
+        if (n.endsWith(".txt") || n.endsWith("VERSION")) return "text/plain";
         return "application/octet-stream";
     }
 
@@ -403,7 +407,9 @@ public class MainActivity extends Activity {
             });
         }
 
-        @JavascriptInterface public String version() { return Updater.wwwVersion(MainActivity.this); }
+        @JavascriptInterface public String version() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; }
+        }
 
         /* ---------- yerel ağ eşitleme (internetsiz) ---------- */
         @JavascriptInterface public void lanHttp(String cb, String method, String url, String body, int timeoutMs, String key) { bg(() -> callback(cb, LanSync.http(method, url, body, timeoutMs, key))); }

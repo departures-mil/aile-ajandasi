@@ -1,5 +1,6 @@
 """Ajandam APK'sını Gradle ve Android SDK olmadan üretir (depo kökünden):
   python3 tools/apk.py <ajandam-release.jks> <şifre> <çıktı.apk>
+  (şifre "-" ise AJANDAM_KS_PASS ortam değişkeninden okunur; şifreyi komut satırına/depoya yazmayın)
 aapt2 (build-tools 34), android.jar (platform 34), d8 (r8.jar) ve apksig ilk çalıştırmada ~/.cache/og-apk/ altına iner.
 Sürüm android/app/build.gradle'dan (versionCode = NATIVE_CODE, versionName) okunur; android/app/src/main/assets/www, www/ klasöründen yenilenir.
 İmza anahtarı depoda DEĞİL: C:\\Claude Programlarım\\_Anahtarlar\\Ajandam (alias ajandam).
@@ -67,14 +68,14 @@ def main():
     if len(sys.argv) != 4:
         raise SystemExit(__doc__)
     ks, pw, out = sys.argv[1:]
+    if pw == "-":
+        pw = os.environ.get("AJANDAM_KS_PASS", "")
     g = open(os.path.join(ROOT, "android", "app", "build.gradle"), encoding="utf-8").read()
     vcode = re.search(r"versionCode\s+(\d+)", g).group(1)
     vname = re.search(r'versionName\s+"([^"]+)"', g).group(1)
     aapt2, ajar, r8, apksig = cached("bt/aapt2"), cached("android.jar"), cached("r8.jar"), cached("apksig.jar")
-    www = os.path.join(APP, "assets", "www")
-    for f in glob.glob(os.path.join(ROOT, "www", "*")):
-        if os.path.isfile(f):
-            shutil.copy2(f, www)
+    # www/ (alt klasörler dahil: cekirdek/) → assets/www (twemoji yerinde kalır)
+    subprocess.run(["node", os.path.join(ROOT, "tools", "hazirla.js")], check=True)
     env = dict(os.environ, LD_LIBRARY_PATH=os.path.dirname(aapt2))
     with tempfile.TemporaryDirectory() as t:
         flat = os.path.join(t, "res.zip")
@@ -103,7 +104,7 @@ def main():
         aligned = os.path.join(t, "a.apk")
         align(unsigned, aligned)
         run("javac", "-nowarn", "-cp", apksig, "-d", t, os.path.join(ROOT, "tools", "apk", "Imzala.java"))
-        print(run("java", "-cp", apksig + os.pathsep + t, "Imzala", ks, pw, "ajandam", aligned, os.path.abspath(out)).strip())
+        print(run("java", "-cp", apksig + os.pathsep + t, "Imzala", ks, pw, os.environ.get("AJANDAM_KEY_ALIAS", "ajandam"), aligned, os.path.abspath(out)).strip())
     print(f"APK: {out} (versionCode {vcode}, {vname}, {os.path.getsize(out) / 1e6:.1f} MB)")
 
 

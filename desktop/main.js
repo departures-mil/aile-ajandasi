@@ -1,16 +1,61 @@
 'use strict';
+/* Ajandam — Electron ana süreç (5.7.0: ortak çekirdek).
+   Pencere, tam ekran açılış, sağ üst pencere düğmeleri, GitHub Releases güncellemesi (yama + tam dosya) ve ana süreç hata
+   raporu ortak çekirdekten gelir (cekirdek/electron/fc-electron-main.js). Burada uygulamaya özgü köprü (window.Android) kalır.
+
+   Üç kip:
+   - kurulu  (NSIS, app.asar)   : veri %APPDATA%\Ajandam\data ; güncelleme kanalı win-app (app.asar yaması / tam dosya)
+   - taşınabilir (≤5.6 kurulumu, eski kanal köprüsüyle bu main.js'i almış): veri exe'nin yanındaki data\ (DEĞİŞMEZ);
+                                   "Güncelle" kurulum programını (win-setup) indirir, eski veri yerini bildirir, kurar
+   - geliştirme (npm start)      : veri desktop/data
+   Kurulu sürüm ilk açılışta, taşınabilir sürümün bıraktığı işaretten (eski-konum.json) eski veriyi KOPYALAR (orijinale dokunmaz). */
 const { app, BrowserWindow, ipcMain, dialog, nativeImage, Notification, Tray, Menu, shell, clipboard, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
+
+let fc = null, fcError = '';
+try { fc = require('./cekirdek/electron/fc-electron-main'); } catch (e) { fcError = String(e && e.message || e); }
 
 const PKG = require('./package.json');
-const VERSION = PKG.version.replace(/\.0$/, '');
-const BUILD_CODE = PKG.buildCode || 0;
-// Portable: everything is stored in a "data" folder next to the exe.
-const BASE = app.isPackaged ? path.dirname(process.execPath) : __dirname;
-const DATA = path.join(BASE, 'data');
+const VERSION = PKG.version;
+const TEST = process.env.AJANDAM_SMOKE ? process.env.AJANDAM_MODE : '';    // yalnız açılış testi kipleri dener
+const INSTALLED = TEST ? TEST === 'installed' : app.isPackaged && /\.asar$/i.test(__dirname);
+const PORTABLE = TEST ? TEST === 'portable' : app.isPackaged && !INSTALLED;
+const MODE = INSTALLED ? 'installed' : PORTABLE ? 'portable' : 'dev';
+const HOME = (process.env.AJANDAM_SMOKE && process.env.AJANDAM_HOME) || path.join(app.getPath('appData'), 'Ajandam');   // %APPDATA%\Ajandam
+const DATA = (process.env.AJANDAM_SMOKE && process.env.AJANDAM_DATA) || (INSTALLED ? path.join(HOME, 'data') : path.join(PORTABLE ? path.dirname(process.execPath) : __dirname, 'data'));
+const POINTER = path.join(HOME, 'eski-konum.json');                        // taşınabilir sürümün veri yeri (kurulu sürüm için)
 const PHOTOS = path.join(DATA, 'photos');
+
+/** Kurulu sürümün ilk açılışı: taşınabilir sürümün verisini kopyalar (orijinal yerinde kalır, hiçbir şey silinmez). */
+function copyTree(src, dst, skip) {
+  const st = fs.statSync(src);
+  if (st.isDirectory()) {
+    fs.mkdirSync(dst, { recursive: true });
+    for (const n of fs.readdirSync(src)) { if (skip && skip(n)) continue; try { copyTree(path.join(src, n), path.join(dst, n), skip); } catch (e) { /* kilitli önbellek dosyası */ } }
+  } else if (!fs.existsSync(dst)) fs.copyFileSync(src, dst);
+}
+const SKIP_CACHE = n => /^(Cache|Code Cache|GPUCache|DawnCache|DawnGraphiteCache|DawnWebGPUCache|ShaderCache|GrShaderCache|Crashpad|blob_storage|LOCK|lockfile|SingletonLock|SingletonCookie|SingletonSocket)$/i.test(n);
+function migrateFrom(oldData, why) {
+  if (!oldData || path.resolve(oldData) === path.resolve(DATA) || !fs.existsSync(path.join(oldData, 'data.json'))) return false;
+  if (fs.existsSync(path.join(DATA, 'data.json'))) {   // burada zaten veri var: önce yedek (üstüne yazılmaz)
+    const bak = path.join(DATA, 'yedek-' + new Date().toISOString().replace(/[:.]/g, '-'));
+    fs.mkdirSync(bak, { recursive: true });
+    for (const f of ['data.json', 'prefs.json']) { try { fs.renameSync(path.join(DATA, f), path.join(bak, f)); } catch (e) { /* yok */ } }
+  }
+  copyTree(oldData, DATA, SKIP_CACHE);
+  fs.writeFileSync(path.join(DATA, 'tasindi.json'), JSON.stringify({ from: oldData, at: new Date().toISOString(), why }));
+  return true;
+}
+if (INSTALLED && !fs.existsSync(path.join(DATA, 'data.json'))) {
+  try { const p = JSON.parse(fs.readFileSync(POINTER, 'utf8')); migrateFrom(p.data, 'portable'); } catch (e) { /* işaret yok: yeni kurulum */ }
+}
+if (PORTABLE) {   // kurulu sürüm sonradan bu verileri bulabilsin
+  try { fs.mkdirSync(HOME, { recursive: true }); fs.writeFileSync(POINTER, JSON.stringify({ data: DATA, exe: process.execPath, version: VERSION, at: new Date().toISOString() })); } catch (e) { /* yazılamadı */ }
+}
 fs.mkdirSync(PHOTOS, { recursive: true });
 app.setPath('userData', path.join(DATA, 'electron'));
 app.setAppUserModelId('com.aile.uygulamasi.desktop');
@@ -24,10 +69,9 @@ let tray = null;
 let quitting = false;
 let pendingDoc = '';
 
-/* ---------- in-app updates (signed bundles on GitHub: departures-mil/aile-ajandasi → guncelleme/; Firebase is only for live data) ---------- */
-
-const UPDATE_PUBKEY = '-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMdYJKGu2BpJT/N9oK9TMsUfmeJqMStUAtvlsA9wHYfk9Z6cJo5zdvTBSJpChyTNe3nGbSP/DJI7YTrnr2zij7w==\n-----END PUBLIC KEY-----\n';
-
+/* ---------- eski güncelleme kanalı (raw guncelleme/upd_latest.json, ECDSA imzalı) ----------
+   Masaüstü artık GitHub Releases'tan güncellenir (ortak çekirdek). Bu kanal yalnız ESKİ telefon uygulamalarına (APK ≤5.2,
+   güncellemeyi ailenin Firebase'inden alanlar) köprü paketini aktarmak için okunur. */
 /** Field "data" of families/{fid}/photos/{id}, or null when the document does not exist. */
 const GITHUB_RAW = 'https://raw.githubusercontent.com/departures-mil/aile-ajandasi/main/guncelleme/';
 
@@ -78,19 +122,9 @@ async function updateManifest() {
   return b ? JSON.parse(b.toString('utf8')) : null;
 }
 
-/** Bytes the bundle download will take. */
-function updateSize(l) {
-  return l.bytes || 0;
-}
-
-async function updateCheck() {
-  try {
-    const l = await updateManifest();
-    if (!l || !l.code) return { ok: true, available: false, current: VERSION };
-    return { ok: true, available: l.code > BUILD_CODE, code: l.code, version: l.version, notes: l.notes || '', current: VERSION, needApk: false, size: updateSize(l) };
-  } catch (e) {
-    return { ok: false, error: String(e.message || e), current: VERSION };
-  }
+async function updateManifest() {
+  const b = await ghFile('upd_latest.json');
+  return b ? JSON.parse(b.toString('utf8')) : null;
 }
 
 /* ---------- telefon güncellemesinin aktarılması (GitHub → ailenin Firebase'i) ----------
@@ -135,62 +169,6 @@ async function relayUpdateToFamily() {
       partChars: parts.map(p => p.length), bytes: buf.length, sha: man.sha, sig: man.sig, published: man.published || Date.now() });
     await put('upd_latest', JSON.stringify(out));
   } catch (e) { /* bir sonraki denemede */ } finally { relaying = false; }
-}
-
-let applying = null;
-function sendProgress(p) {
-  if (win && !win.isDestroyed()) win.webContents.send('updProgress', p);
-}
-
-/** Downloads, checks and writes the new files over this portable app; they are used after a restart. */
-function updateApply() {
-  if (!applying) applying = doApply().finally(() => { applying = null; });
-  return applying;
-}
-
-async function doApply() {
-  try {
-    const l = await updateManifest();
-    if (!l || !l.code) throw new Error('no update');
-    const total = updateSize(l);
-    let got = 0, last = 0;
-    const t0 = Date.now();
-    const onBytes = n => {
-      got = Math.max(0, got + n);
-      const now = Date.now();
-      if (now - last < 150 && n > 0) return;
-      last = now;
-      sendProgress({ phase: 'dl', got, total: Math.max(total, got), ms: now - t0 });
-    };
-    sendProgress({ phase: 'dl', got: 0, total, ms: 0 });
-    const gz = await ghFile(l.file, onBytes);
-    if (!gz) throw new Error('missing bundle');
-    sendProgress({ phase: 'dl', got, total: got, ms: Date.now() - t0, done: true });
-    sendProgress({ phase: 'install', got, total: got, ms: Date.now() - t0 });
-    if (crypto.createHash('sha256').update(gz).digest('hex') !== l.sha) throw new Error('checksum');
-    if (!crypto.verify('sha256', gz, UPDATE_PUBKEY, Buffer.from(l.sig, 'base64'))) throw new Error('signature');
-    const bundle = JSON.parse(require('zlib').gunzipSync(gz).toString('utf8'));
-    const writes = [];
-    Object.entries(bundle.files).forEach(([rel, text]) => {
-      if (rel.includes('..')) return;
-      if (rel.startsWith('www/')) writes.push([path.join(__dirname, rel), text]);
-      else if (rel.startsWith('desktop/')) writes.push([path.join(__dirname, rel.slice(8)), text]);
-    });
-    if (!writes.length) throw new Error('empty bundle');
-    // keep a copy of the current files (per version), write everything to temp files, then swap them in
-    const bak = path.join(DATA, 'update-backup', 'v' + VERSION);
-    writes.forEach(([f]) => {
-      if (!fs.existsSync(f)) return;
-      const b = path.join(bak, path.relative(__dirname, f));
-      fs.mkdirSync(path.dirname(b), { recursive: true });
-      fs.copyFileSync(f, b);
-    });
-    writes.forEach(([f, text]) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f + '.new', text, 'utf8'); });
-    writes.forEach(([f]) => fs.renameSync(f + '.new', f));
-    return { ok: true, version: bundle.version };
-  } catch (e) {
-    return { ok: false, error: String(e.message || e) };
-  }
 }
 
 /* ---------- files ---------- */
@@ -354,6 +332,8 @@ const syncCalls = {
   copy: text => { clipboard.writeText(String(text)); return true; },
   paste: () => clipboard.readText(),
   version: () => VERSION,
+  // 5.7: kabuk bilgisi (kip, veri yeri, çekirdek yüklendi mi) — arayüz taşınabilir kipte kurulum programına geçişi önerir
+  deskInfo: () => JSON.stringify({ mode: MODE, data: DATA, fc: !!fc, fcError, version: VERSION, migrated: readText(path.join(DATA, 'tasindi.json')) || '' }),
   isFullScreen: () => !!(win && win.isFullScreen()),
   toggleFullScreen: () => { if (win) win.setFullScreen(!win.isFullScreen()); return !!(win && win.isFullScreen()); },
   // The in-app exit button: hide to the tray (reminders keep coming) or quit completely.
@@ -362,8 +342,17 @@ const syncCalls = {
 };
 
 const asyncCalls = {
-  updateCheck: () => updateCheck(),
-  updateApply: () => updateApply(),
+  // 5.7: eski taşınabilir Ajandam klasöründen veri al (Ayarlar). Mevcut veri önce yedek klasörüne taşınır, hiçbir şey silinmez.
+  importLegacy: async () => {
+    const r = await dialog.showOpenDialog(win, { properties: ['openDirectory'], title: 'Ajandam' });
+    if (r.canceled || !r.filePaths[0]) return { ok: false, error: 'cancel' };
+    const dir = r.filePaths[0];
+    const cand = [dir, path.join(dir, 'data')].find(d => fs.existsSync(path.join(d, 'data.json')));
+    if (!cand) return { ok: false, error: 'notfound' };
+    try { migrateFrom(cand, 'manual'); } catch (e) { return { ok: false, error: String(e.message || e) }; }
+    setTimeout(() => { quitting = true; app.relaunch(); app.exit(0); }, 600);
+    return { ok: true, from: cand };
+  },
   http: async (method, url, body, auth) => {
     let tok = null;
     if (auth) { tok = await idToken(); if (!tok) return { status: -1, body: lastError }; }
@@ -415,24 +404,25 @@ function showWindow() {
 }
 
 function createWindow() {
-  win = new BrowserWindow({
+  const base = {
     width: 1100, height: 820, minWidth: 360, minHeight: 560, show: false,
-    title: 'Ajandam v' + VERSION,
-    icon: ICON,
-    autoHideMenuBar: true,
-    backgroundColor: '#F4F5F2',
+    title: 'Ajandam', icon: ICON, autoHideMenuBar: true, backgroundColor: '#070b14',
+    // contextIsolation kapalı (eski köprü window.Android ile aynı); preload fcHost'u doğrudan window'a koyar
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: false, nodeIntegration: false, sandbox: false, backgroundThrottling: false, spellcheck: false }
-  });
+  };
+  win = new BrowserWindow(fc ? fc.windowOptions(base) : Object.assign(base, { fullscreen: true }));
   win.setMenuBarVisibility(false);
-  // Always opens full screen; the "window view" button in the app (or F11) switches to a normal window.
-  win.once('ready-to-show', () => { win.setFullScreen(true); win.show(); });
-  const refresh = () => win.webContents.executeJavaScript('window.onWindowMode && window.onWindowMode()').catch(() => {});
-  win.on('enter-full-screen', refresh);
-  win.on('leave-full-screen', refresh);
+  if (fc) {
+    // Kurulu: app.asar yaması / tam dosya. Taşınabilir: kurulum programına geçiş (win-setup) — bkz. portableSetup()
+    fc.install(win, { channel: PORTABLE ? 'win-setup' : 'win-app' });
+    if (PORTABLE) portableSetup();
+  } else {
+    win.once('ready-to-show', () => { win.setFullScreen(true); win.show(); });
+  }
   win.loadFile(path.join(__dirname, 'www', 'index.html'));
   win.on('page-title-updated', e => e.preventDefault());
-  win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
-  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); shell.openExternal(url); } });
+  win.webContents.setWindowOpenHandler(({ url }) => { if (/^https:\/\//i.test(url)) shell.openExternal(url); return { action: 'deny' }; });
+  win.webContents.on('will-navigate', (e, url) => { if (!url.startsWith('file:')) { e.preventDefault(); if (/^https:\/\//i.test(url)) shell.openExternal(url); } });
   win.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown' && input.key === 'F11') {
       e.preventDefault();
@@ -444,8 +434,9 @@ function createWindow() {
   win.on('focus', () => win.webContents.executeJavaScript('window.onResumeApp && window.onResumeApp()').catch(() => {}));
   win.on('close', e => {
     if (quitting) return;
-    // Keep running in the tray so reminders still pop up.
+    // Kapat: program bildirim alanında çalışmaya devam eder (hatırlatmalar gelsin). Tamamen çıkış: simgeye sağ tık → Çıkış.
     e.preventDefault();
+    if (win.isFullScreen()) win.setFullScreen(false);
     win.hide();
     const p = prefs();
     if (!p.trayHint && Notification.isSupported()) {
@@ -453,6 +444,54 @@ function createWindow() {
       p.trayHint = true;
       setPrefs(p);
     }
+  });
+  if (process.env.AJANDAM_SMOKE) smoke();
+}
+
+/* ---------- taşınabilir kip: "Güncelle" = kurulum programını indir, çalıştır, çık ----------
+   Çekirdek güncelleyici win-setup kanalının tam dosyasını indirir ve SHA-256 ile doğrular; burada exe geçici klasöre yazılır,
+   eski veri yeri eski-konum.json'a yazılmıştır (açılışta), kurulum başlatılır ve bu taşınabilir kopya kapanır.
+   Kurulum bitince yeni Ajandam açılır ve veriyi kopyalar. Taşınabilir klasör ve içindeki data\ olduğu gibi kalır. */
+function portableSetup() {
+  const h = (ch, fn) => { ipcMain.removeHandler(ch); ipcMain.handle(ch, fn); };
+  h('fc:update:patch', () => ({ ok: false, error: 'PORTABLE_FULL_ONLY' }));
+  h('fc:update:full', async (_e, bytes, meta) => {
+    try {
+      const buf = Buffer.from(bytes);
+      if (meta && meta.targetSha256 && crypto.createHash('sha256').update(buf).digest('hex') !== String(meta.targetSha256).toLowerCase()) return { ok: false, error: 'BAD_HASH' };
+      const exe = path.join(os.tmpdir(), 'Ajandam-Setup-' + String((meta && meta.version) || 'yeni').replace(/[^\w.-]/g, '') + '.exe');
+      fs.writeFileSync(exe, buf);
+      if (process.platform !== 'win32') return { ok: false, error: 'NOT_WINDOWS' };
+      spawn(exe, [], { detached: true, stdio: 'ignore' }).unref();
+      setTimeout(() => { quitting = true; app.exit(0); }, 800);
+      return { ok: true, data: 'restarting' };
+    } catch (e) { return { ok: false, error: String(e && e.code || e && e.message || e) }; }
+  });
+}
+
+/* ---------- Electron açılış testi (npm test) ---------- */
+function smoke() {
+  const out = o => process.stdout.write('AJ_SMOKE ' + JSON.stringify(o) + '\n');
+  const consoleErrors = [];
+  win.webContents.on('console-message', (e, level, message) => { if (level >= 3) consoleErrors.push(String(message).slice(0, 300)); });
+  const fail = setTimeout(() => { out({ ok: false, error: 'timeout' }); app.exit(2); }, 45000);
+  win.webContents.on('did-finish-load', () => {
+    setTimeout(async () => {
+      try {
+        const r = await win.webContents.executeJavaScript(`({
+          fc: !!(window.FC && FC.updater && FC.topbar), host: window.FC && FC.host.kind, fcHost: !!window.fcHost, android: !!window.Android,
+          version: window.APP_RELEASE && APP_RELEASE.version, scheme: document.documentElement.dataset.scheme,
+          topbar: !!document.querySelector('#topbar .topbar-actions'), winBtns: document.querySelectorAll('#topbar .win-controls button').length,
+          updateBtn: !!document.querySelector('#topbar .update-act'), tabs: document.querySelectorAll('#app .tab').length,
+          channel: window.fcHost && fcHost.update && fcHost.update.channel, docs: typeof S !== 'undefined' ? Object.keys(S.docs).length : -1, arsiv: typeof S !== 'undefined' ? (S.arsiv || []).length : -1, portable: !!(window.Kabuk && Kabuk.portable), migrated: !!(window.Kabuk && Kabuk.info && Kabuk.info.migrated), modal: (document.querySelector('.modal h2') || {}).textContent || '', title: document.title, errors: (window.__ajErrors || []).slice(0, 5)
+        })`);
+        r.fullscreen = win.isFullScreen(); r.appVersion = app.getVersion(); r.mode = MODE; r.data = DATA;
+        r.errors = r.errors.concat(consoleErrors.filter(m => !/net::|Failed to load resource|ERR_/.test(m)));
+        clearTimeout(fail);
+        out(Object.assign({ ok: r.fc && r.host === 'electron' && r.topbar && r.tabs > 0 && !r.errors.length }, r));
+        quitting = true; app.exit(0);
+      } catch (e) { out({ ok: false, error: String(e && e.message || e) }); app.exit(3); }
+    }, 3000);
   });
 }
 
@@ -476,7 +515,7 @@ function createTray() {
   tray.on('right-click', () => tray.setContextMenu(menu()));
 }
 
-if (!app.requestSingleInstanceLock()) {
+if (!process.env.AJANDAM_SMOKE && !app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', showWindow);
@@ -484,7 +523,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(null);
     rebuildReminders();
     createWindow();
-    createTray();
+    if (!process.env.AJANDAM_SMOKE) createTray();
     lan.setup({ appId: 'ajandam', prefsGet: prefs, prefsSet: setPrefs, photoFile, getWindow: () => win });
     setInterval(checkReminders, 20000);
     setTimeout(checkReminders, 3000);
