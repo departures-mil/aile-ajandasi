@@ -2,3 +2,6 @@ keys/
 *.jks
 node_modules/
 android/app/build/
+android/keystore.properties
+keystore.properties
+*.keystore
