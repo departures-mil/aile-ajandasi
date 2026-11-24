@@ -10,7 +10,6 @@
    - geliştirme (npm start)      : veri desktop/data
    Kurulu sürüm ilk açılışta, taşınabilir sürümün bıraktığı işaretten (eski-konum.json) eski veriyi KOPYALAR (orijinale dokunmaz). */
 const { app, BrowserWindow, ipcMain, dialog, nativeImage, Notification, Tray, Menu, shell, clipboard, net } = require('electron');
-try { require('./fc-agent-main.js').install(); } catch (e) { console.error('fc-agent', e); }
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
