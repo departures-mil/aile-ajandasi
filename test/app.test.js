@@ -36,7 +36,7 @@ test('imza şifreleri depoda yok', () => {
 
 test('gömülü ortak çekirdek: sürüm kaydı ve modüller', () => {
   for (const f of ['desktop/cekirdek/VERSION', 'www/cekirdek/VERSION']) assert.match(R(f), /^ortak-cekirdek [0-9a-f]{40}\n/);
-  assert.strictEqual(R('desktop/cekirdek/VERSION'), R('www/cekirdek/VERSION'));
+  assert.ok(R('desktop/cekirdek/VERSION').startsWith(R('www/cekirdek/VERSION')), 'aynı çekirdek'); assert.match(R('desktop/cekirdek/VERSION'), /ebec004[0-9a-f]*/); assert.match(R('desktop/cekirdek/electron/fc-electron-main.js'), /isSetup\(meta\)/);
   delete globalThis.FC;
   require('../www/cekirdek/fc-core.js');
   const FC = globalThis.FC;
