@@ -121,6 +121,7 @@ jobs:
       version: ${{ needs.build-win.outputs.version }}
       file_prefix: Ajandam
       release_title: Ajandam v${{ needs.build-win.outputs.version }}
+      min_version: 5.7.2
       files: ${{ needs.build-android.outputs.files }}
       notes_json: release-notes.json
       core_ref: main
