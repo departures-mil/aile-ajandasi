@@ -42,7 +42,7 @@
       'aj.setupLegacyHint': 'İndirilen dosyayı açın. Kurulumdan sonra yeni Ajandam eski kayıtlarınızı bulamazsa: Ayarlar → "Eski Ajandam klasöründen veri al" ile şu klasörü seçin:',
       'aj.apkDesc': 'Ajandam {0} telefonda yeni bir uygulama sürümüyle gelir: sağ üstte her zaman görünen Güncelle düğmesi, güncellemeler GitHub\'dan (yalnızca değişen kısımlar), yeni görünüm.',
       'aj.apkKeep': 'Kayıtlarınız korunur: yeni sürüm bu uygulamanın üstüne kurulur (aynı imza), hiçbir şey silinmez.',
-      'aj.apkDl': 'Yeni sürümü indir (APK)', 'aj.apkHint': 'İndirme bitince bildirimden dosyayı açın ve "Güncelle" deyin. Gerekirse "bilinmeyen kaynaklara izin ver" seçeneğini açın.',
+      'aj.apkDl': 'Yeni sürümü indir (APK)', 'aj.apkHint': 'Açılan sayfada Ajandam-…-android.apk dosyasını indirin. İndirme bitince bildirimden dosyayı açın ve "Güncelle" deyin. Gerekirse "bilinmeyen kaynaklara izin ver" seçeneğini açın.',
       'aj.arch': 'Arşiv ve yedekler', 'aj.archDesc': 'Eşitlemede hiçbir kayıt kalıcı olarak silinmez: başka cihazda silinen kayıtlar buraya arşivlenir, aynı anda iki yerde değişen kayıtların eski hali yedeklenir. İstediğinizi geri yükleyebilirsiniz.',
       'aj.archived': 'Arşivlenen kayıtlar', 'aj.conflicts': 'Çakışma yedekleri', 'aj.restore': 'Geri yükle', 'aj.restored': 'Geri yüklendi', 'aj.none': 'Yok',
       'aj.from.cloud': 'bulut', 'aj.from.lan': 'Wi-Fi', 'aj.show': 'Göster', 'aj.hide': 'Gizle',
@@ -62,7 +62,7 @@
       'aj.setupLegacyHint': 'Open the downloaded file. If the new Ajandam does not find your old records after installing, choose Settings → "Import data from an old Ajandam folder" and select this folder:',
       'aj.apkDesc': 'Ajandam {0} comes as a new app version on the phone: an Update button that is always visible at the top right, updates from GitHub (only the changed parts) and a new look.',
       'aj.apkKeep': 'Your records are kept: the new version installs over this app (same signature); nothing is deleted.',
-      'aj.apkDl': 'Download the new version (APK)', 'aj.apkHint': 'When the download finishes, open the file from the notification and choose "Update". If asked, allow installing from unknown sources.',
+      'aj.apkDl': 'Download the new version (APK)', 'aj.apkHint': 'On the page that opens, download Ajandam-…-android.apk. When the download finishes, open the file from the notification and choose "Update". If asked, allow installing from unknown sources.',
       'aj.arch': 'Archive and backups', 'aj.archDesc': 'Sync never deletes a record for good: records deleted on another device are archived here, and when a record changed in two places at once the older version is backed up. You can restore any of them.',
       'aj.archived': 'Archived records', 'aj.conflicts': 'Conflict backups', 'aj.restore': 'Restore', 'aj.restored': 'Restored', 'aj.none': 'None',
       'aj.from.cloud': 'cloud', 'aj.from.lan': 'Wi-Fi', 'aj.show': 'Show', 'aj.hide': 'Hide',
@@ -82,7 +82,7 @@
       'aj.setupLegacyHint': 'افتح الملف الذي نزّلته. إذا لم يجد Ajandam الجديد سجلاتك القديمة بعد التثبيت، فاختر الإعدادات ← «استيراد البيانات من مجلد Ajandam قديم» وحدد هذا المجلد:',
       'aj.apkDesc': 'يأتي Ajandam {0} على الهاتف بإصدار تطبيق جديد: زر «تحديث» ظاهر دائماً في أعلى اليمين، وتحديثات من GitHub (الأجزاء المتغيرة فقط)، ومظهر جديد.',
       'aj.apkKeep': 'سجلاتك محفوظة: يُثبَّت الإصدار الجديد فوق هذا التطبيق (التوقيع نفسه)، ولا يُحذف شيء.',
-      'aj.apkDl': 'تنزيل الإصدار الجديد (APK)', 'aj.apkHint': 'عند انتهاء التنزيل افتح الملف من الإشعار واختر «تحديث». إذا طُلب منك فاسمح بالتثبيت من مصادر غير معروفة.',
+      'aj.apkDl': 'تنزيل الإصدار الجديد (APK)', 'aj.apkHint': 'في الصفحة التي تُفتح نزّل الملف Ajandam-…-android.apk. عند انتهاء التنزيل افتح الملف من الإشعار واختر «تحديث». إذا طُلب منك فاسمح بالتثبيت من مصادر غير معروفة.',
       'aj.arch': 'الأرشيف والنسخ الاحتياطية', 'aj.archDesc': 'لا تحذف المزامنة أي سجل نهائياً: السجلات المحذوفة على جهاز آخر تُؤرشف هنا، وعندما يتغير سجل في مكانين معاً تُحفظ نسخته الأقدم احتياطياً. يمكنك استعادة أي منها.',
       'aj.archived': 'السجلات المؤرشفة', 'aj.conflicts': 'نسخ التعارض الاحتياطية', 'aj.restore': 'استعادة', 'aj.restored': 'تمت الاستعادة', 'aj.none': 'لا يوجد',
       'aj.from.cloud': 'السحابة', 'aj.from.lan': 'Wi-Fi', 'aj.show': 'عرض', 'aj.hide': 'إخفاء',
@@ -307,7 +307,7 @@
     body.appendChild(ui.el('p.muted', { text: T('aj.apkHint'), style: 'margin-top:12px' }));
     ui.modal({ title: T('aj.newApk'), icon: 'download', body: body, buttons: [
       { label: T('aj.later'), cls: 'ghost' }, 'spacer',
-      { label: T('aj.apkDl'), icon: 'download', cls: 'primary', onClick: function () { try { saveNow(); } catch (e) { } open(assetUrl('android', '.apk')); return false; } }
+      { label: T('aj.apkDl'), icon: 'download', cls: 'primary', onClick: function () { try { saveNow(); } catch (e) { } open(releasesUrl()); return false; } }   // sürümler sayfası: APK o sürümde yoksa da kırık bağlantı olmaz
     ] });
   }
   // Eski kabukta "Güncelle" de köprüye götürür
