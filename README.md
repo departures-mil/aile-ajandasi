@@ -38,3 +38,8 @@ eşitlenir; **kayıtlar bu depoda bulunmaz**.
 - Ayarlar > Kullanım Limitleri (`www/kullanim.js` = duyurular/istemci/kullanim.js, `www/kullanim-baslat.js`); `nat('http')` cevapları sayılır.
 - Ortak Firebase projesi (`aileajandasi-f65c9`) programdan çıkarıldı: her aile kendi ücretsiz hesabını kurar (❓ yardım / duyurular/firebase-kurulum.md).
   Eski ortak projede yalnız yöneticinin ailesi (`YONETICI_AILE` = R69ZH34686) kalır; diğer ailelerin eşitlemesi kapatılır, kayıtları telefonda kalır.
+
+## Asistan Agent
+5.7.0'dan itibaren ortak çekirdeğin içindeki `FC.agent` kullanılır (`www/cekirdek/fc-core.js`; ✦ üst çubukta, Ayarlar'da kendi kartı,
+Electron sayaç paylaşımı `fc-electron-main.js`, Android bildirimi `AndroidBridge.notify`). Ayrı `fc-agent.js` / `agent-baslat.js` /
+`fc-agent-main.js` (2026-11-24 ara commit'i) bu yüzden kaldırıldı.
