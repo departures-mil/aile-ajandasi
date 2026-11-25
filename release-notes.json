@@ -1,5 +1,5 @@
 {
-  "tr": "Eski sürümlerden bu sürüme geçiş bir kez tam kurulumla yapılır (eski güncelleyicideki siyah pencere sorunu yaşanmaz). Sonraki güncellemeler yine arka planda, kendiliğinden. Kayıtlar korunur.",
-  "en": "Moving from older versions to this one is done once with a full install (avoids the black-window problem of the old updater). Later updates again run by themselves in the background. Records are kept.",
-  "ar": "يتم الانتقال من الإصدارات القديمة إلى هذا الإصدار مرة واحدة بتثبيت كامل (تجنباً لمشكلة النوافذ السوداء في المحدِّث القديم). التحديثات اللاحقة تتم تلقائياً في الخلفية. تبقى السجلات محفوظة."
+  "tr": "Elektrik sekmesi yenilendi (Falcon Ofis düzeni): altta her zaman görünen \"Sayaç okuma\" paneli — son değer, harcanan kWh ve tek dokunuşla \"Okuma Ekle\". Daha sade görünüm: okunan değerler açılır liste, okuma anına isteğe bağlı fotoğraf. Eski okumalar aynen korunur.",
+  "en": "Electricity tab renewed (Falcon Ofis layout): an always-visible \"Meter reading\" panel at the bottom — last value, kWh used and one-tap \"Add Reading\". Simpler view: readings in a fold-out list, optional photo at reading time. Existing readings are kept as they are.",
+  "ar": "تم تجديد قسم الكهرباء (بتصميم Falcon Ofis): لوحة «قراءة العداد» ظاهرة دائماً في الأسفل — آخر قيمة والاستهلاك بالكيلوواط ساعة وزر «إضافة قراءة» بلمسة واحدة. عرض أبسط: القراءات في قائمة قابلة للطي، وصورة اختيارية وقت القراءة. تبقى القراءات السابقة كما هي."
 }

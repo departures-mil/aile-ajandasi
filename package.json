@@ -1,7 +1,7 @@
 {
   "name": "aile-ajandasi-build",
   "private": true,
-  "version": "5.7.3",
+  "version": "5.8.0",
   "description": "Ajandam (Aile Ajandası) — derleme ve test. Uygulamanın kendi bildirimi desktop/package.json (name/productName DEĞİŞMEZ).",
   "author": "departures-mil",
   "license": "UNLICENSED",

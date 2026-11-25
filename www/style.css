@@ -314,3 +314,22 @@ html.fc-host-android .topbar-sep { display: none; }
 #app .card.summary { padding: 12px 14px; border-inline-start: 4px solid var(--acc); }
 #app .card.netcard, #app .card.eleccard { padding: 14px; }
 [data-scheme="klasik"] #topbar .lan-act svg, [data-scheme="klasik"] #topbar .sync-act svg { color: #fff; }
+
+/* 5.8 Elektrik: sade görünüm + altta sabit "Sayaç okuma" paneli */
+.elecadd { min-height: 52px; font-size: calc(17px * var(--font-scale)); font-weight: 700; }
+.elechist { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 12px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--pri-2); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.elechist.on { border-color: var(--pri); }
+.elecpays { margin-top: 6px; }
+.elecrph { width: 30px; height: 30px; object-fit: cover; border-radius: 6px; cursor: zoom-in; }
+.elecbtns { display: flex; gap: 4px; }
+.elecrow .elecby { grid-column: 1 / -1; grid-row: 2; }
+.content.withdock { padding-bottom: 210px; }
+.elecdock { position: fixed; inset-inline: 0; bottom: calc(58px + env(safe-area-inset-bottom)); z-index: 7; padding: 0 10px 8px; pointer-events: none; }
+.elecdock-in { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
+.elecdock-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 2px solid var(--pri); box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.elecdock-row.soon { border-color: var(--warn, #f59e0b); } .elecdock-row.late { border-color: var(--danger); }
+.elecdock-v { font-size: calc(26px * var(--font-scale)); font-weight: 800; line-height: 1.15; }
+.elecdock-v small { font-size: calc(14px * var(--font-scale)); font-weight: 500; color: var(--muted); }
+.elecdock-btn { flex: none; min-height: 50px; padding: 0 16px; font-size: calc(16px * var(--font-scale)); font-weight: 700; white-space: nowrap; }
+@media (max-width: 420px) { .elecdock-v { font-size: calc(22px * var(--font-scale)); } .elecdock-btn { padding: 0 12px; font-size: calc(15px * var(--font-scale)); } }
+body.modal-open .elecdock, body.modal-open .tabs, body.modal-open .fab { display: none; }

@@ -584,10 +584,13 @@ function render() {
   // 5.7: başlık ve sağ üst düğmeler index.html'deki sabit #topbar'da (ortak çekirdek); burada yalnız içerik
   const pt = document.getElementById('pageTitle'); if (pt) pt.textContent = t('app_name');
   app().innerHTML = `
-    <main class="content" id="main">${renderTab()}</main>
-    <button class="fab" data-act="add" aria-label="${esc(t('add'))}">＋</button>
+    <main class="content ${ui.tab === 'elec' && elecItems().length ? 'withdock' : ''}" id="main">${renderTab()}</main>
+    ${ui.tab === 'elec' && elecItems().length ? elecDock() : `<button class="fab" data-act="add" aria-label="${esc(t('add'))}">＋</button>`}
     <nav class="tabs">${tabs.map(([k, ic, l]) => `<button class="tab ${ui.tab === k ? 'on' : ''}" data-tab="${k}"><span>${ic}</span><small>${esc(l)}</small></button>`).join('')}</nav>`;
   renderSyncDot();
+  // Sayaç okuma paneli: tam sekme çubuğunun üstünde dursun, içerik de altında kalmasın
+  const dock = $('.elecdock'), tb = $('.tabs'), mn = $('#main');
+  if (dock && tb) { dock.style.bottom = tb.offsetHeight + 'px'; if (mn) mn.style.paddingBottom = (tb.offsetHeight + dock.offsetHeight + 16) + 'px'; }
   const q = $('#q');
   if (q && qFocus !== null) { q.focus(); try { q.setSelectionRange(qFocus, qFocus); } catch (e) { /* ignore */ } }
 }
@@ -1526,10 +1529,11 @@ function openModal(html, bind) {
   m.id = 'modal';
   m.innerHTML = `<div class="mback" data-act="mclose"></div><div class="mbox">${html}</div>`;
   document.body.appendChild(m);
+  document.body.classList.add('modal-open');
   if (bind) bind(m.querySelector('.mbox'));
   fitAll(m);
 }
-function closeModal() { const m = $('#modal'); if (m) { m.remove(); return true; } return false; }
+function closeModal() { document.body.classList.remove('modal-open'); const m = $('#modal'); if (m) { m.remove(); return true; } return false; }
 
 function confirmBox(text, okLabel, onOk, danger) {
   openModal(`<p class="mtext">${esc(text)}</p><div class="mbtns"><button class="btn" data-act="mclose">${esc(t('cancel'))}</button><button class="btn ${danger ? 'danger' : 'primary'}" id="m-ok">${esc(okLabel)}</button></div>`,
@@ -2010,26 +2014,31 @@ function elecAl(d) {
   return { t: [], ti: '⚡ ' + (d.name || t('tab_elec')), b: d.meterNo || t('tab_elec') };
 }
 
+/** Photos taken with a reading (kept in d.photos so they sync), not shown in the meter's own photo strip. */
+function elecReadPhotos(d) { return (d.reads || []).map(x => x.ph).filter(Boolean); }
+
+/** Falcon Ofis-style meter card, kept simple: photo + big last value + one big button; the list folds away. */
 function elecCard(d) {
   const r = elecReads(d);
   const last = r[0];
   const st = elecStats(d);
   const state = elecState(d);
   const photoId = coverOf(d);
-  const more = (d.photos || []).filter(p => p !== photoId && N.photoUrl(p));
+  const rp = elecReadPhotos(d);
+  const more = (d.photos || []).filter(p => p !== photoId && !rp.includes(p) && N.photoUrl(p));
   const rows = r.slice(0, 12);
   let usage = '';
   if (st) {
     usage = st.last.used >= 0
       ? t('elec_used_line', { used: elecFmt(st.last.used), days: st.last.days, avg: elecFmt(st.last.used / st.last.days) })
       : t(elecDown(d) ? 'elec_topup_line' : 'elec_reset_line', { v: elecFmt(-st.last.used) });
-    if (st.avg > 0) usage += ' · ' + t('elec_avg', { avg: elecFmt(st.avg) });
   }
   const left = elecLeftText(d);
+  const open = ui.elecOpen && ui.elecOpen[d.id];
   return `<div class="card eleccard">
     <div class="nethead">
       <div class="neticon elecicon">⚡</div>
-      <div class="rtext"><div class="netname">${esc(d.name || t('tab_elec'))}</div>${d.meterNo ? `<div class="rmeta elecno"># ${esc(t('elec_no'))}: <b>${esc(d.meterNo)}</b></div>` : ''}<div class="rmeta">${esc(elecDown(d) ? '🔋 ' + t('elec_t_down') : '🔢 ' + t('elec_t_up'))}</div></div>
+      <div class="rtext"><div class="netname">${esc(d.name || t('tab_elec'))}</div><div class="rmeta elecno"># ${esc(t('elec_no'))}: <b dir="ltr">${esc(d.meterNo || '—')}</b></div></div>
       <button class="nbtn" data-open="${d.id}" title="${esc(t('edit'))}">✏️</button>
       ${isAdmin() ? `<button class="nbtn" data-trash="${d.id}" title="${esc(t('delete'))}">🗑</button>` : ''}
     </div>
@@ -2040,34 +2049,57 @@ function elecCard(d) {
           <div class="elgauge">⏲️</div>
           <div class="rtext">
             <div class="small muted">${esc(t('elec_last'))}</div>
-            ${last ? `<div class="elecval">${esc(elecFmt(last.v))} <small>kWh</small></div><div class="small muted">${esc(netDate(last.at))} · ${esc(elecAgoText(last.at))}</div>` : `<div class="elecval none">—</div><div class="small muted">${esc(t('elec_no_reads'))}</div>`}
+            ${last ? `<div class="elecval" dir="ltr">${esc(elecFmt(last.v))} <small>kWh</small></div><div class="small muted">${esc(netDate(last.at))} · ${esc(elecAgoText(last.at))}</div>` : `<div class="elecval none">—</div><div class="small muted">${esc(t('elec_no_reads'))}</div>`}
           </div>
         </div>
-        ${usage ? `<p class="small elecuse">${esc(usage)}</p>` : ''}
+        ${usage ? `<p class="small elecuse">📉 ${esc(usage)}</p>` : ''}
         ${left ? `<p class="small elecleft ${state}">${state === 'ok' ? '🔋' : '⚠️'} ${esc(left)}</p>` : ''}
-        <button class="btn primary wide elecadd" data-elecread="${d.id}">＋ ${esc(t('elec_enter'))}</button>
+        <button class="btn primary wide elecadd" data-elecread="${d.id}">＋ ${esc(t('elec_read_add'))}</button>
       </div>
     </div>
     ${more.length ? `<div class="netinfo-row">${more.map(p => `<img src="${esc(N.photoUrl(p))}" data-view="${esc(p)}" data-of="${d.id}" alt="">`).join('')}</div>` : ''}
     ${d.notes ? `<p class="small muted netnotes">${esc(tx(d.notes))}</p>` : ''}
-    ${rows.length ? `<div class="netpays"><div class="small muted">${esc(t('elec_reads'))}</div>
+    ${rows.length ? `<button class="elechist ${open ? 'on' : ''}" data-elechist="${d.id}">📋 ${esc(t('elec_reads'))} (${r.length}) <span>${open ? '▲' : '▼'}</span></button>
+    ${open ? `<div class="netpays elecpays">
       ${rows.map((x, i) => { const prev = r[i + 1]; return `<div class="elecrow">
-        <span>${esc(dateIn(x.at))}</span><b>${esc(elecFmt(x.v))} kWh</b>
-        <span class="elecdiff ${prev && elecUsed(d, prev, x) < 0 ? 'up' : ''}">${prev ? esc(elecDiffText(d, prev, x)) : ''}</span>
+        <span>${esc(dateIn(x.at))}</span><b dir="ltr">${esc(elecFmt(x.v))} kWh</b>
+        <span class="elecdiff ${prev && elecUsed(d, prev, x) < 0 ? 'up' : ''}" dir="ltr">${prev ? esc(elecDiffText(d, prev, x)) : ''}</span>
+        ${x.ph && N.photoUrl(x.ph) ? `<img class="elecrph" src="${esc(N.photoUrl(x.ph))}" data-view="${esc(x.ph)}" data-of="${d.id}" alt="">` : '<span></span>'}
+        <span class="elecbtns"><button class="nbtn sm" data-elecedit="${d.id}|${esc(x.id)}" title="${esc(t('edit'))}">✏️</button>${isAdmin() ? `<button class="nbtn sm" data-elecdel="${d.id}|${esc(x.id)}" title="${esc(t('delete'))}">🗑</button>` : ''}</span>
         <span class="small muted elecby">${esc([x.note ? tx(x.note) : '', x.by || ''].filter(Boolean).join(' · '))}</span>
-        <button class="nbtn sm" data-elecedit="${d.id}|${esc(x.id)}" title="${esc(t('edit'))}">✏️</button>
-        ${isAdmin() ? `<button class="nbtn sm" data-elecdel="${d.id}|${esc(x.id)}" title="${esc(t('delete'))}">🗑</button>` : ''}
       </div>`; }).join('')}
       ${r.length > rows.length ? `<p class="small muted center">${esc(t('elec_more', { n: r.length - rows.length }))}</p>` : ''}
-    </div>` : ''}
+    </div>` : ''}` : ''}
   </div>`;
 }
 
 function elecBody() {
   const items = elecItems();
-  let h = `<p class="muted small netintro">${esc(t('elec_intro'))}</p><button class="btn primary netadd" data-act="add">＋ ${esc(t('elec_add'))}</button>`;
+  let h = `<p class="muted small netintro">${esc(t('elec_intro'))}</p><button class="btn netadd" data-act="add">＋ ${esc(t('elec_add'))}</button>`;
   if (!items.length) return h + `<div class="empty"><div class="eicon">⚡</div><p>${esc(t('elec_empty'))}</p></div>`;
   return h + items.map(elecCard).join('');
+}
+
+/** Sayaç okuma: fixed above the tab bar in the Electricity tab, always in sight — last value, usage, one big button. */
+function elecDock() {
+  const items = elecItems();
+  if (!items.length) return '';
+  return `<div class="elecdock" role="region" aria-label="${esc(t('elec_dock'))}">
+    <div class="elecdock-in">
+    ${items.slice(0, 3).map(d => {
+      const r = elecReads(d), last = r[0], st = elecStats(d), state = elecState(d);
+      const used = st && st.last.used >= 0 ? t('elec_dock_used', { used: elecFmt(st.last.used), days: st.last.days }) : '';
+      return `<div class="elecdock-row ${state}">
+        <div class="rtext">
+          <div class="small muted">⏲️ ${esc(t('elec_dock'))}${items.length > 1 ? ' · ' + esc(d.name || '') : ''}</div>
+          <div class="elecdock-v" dir="ltr">${last ? esc(elecFmt(last.v)) + ' <small>kWh</small>' : '—'}</div>
+          <div class="small muted">${last ? esc(elecAgoText(last.at)) : esc(t('elec_no_reads'))}${used ? ' · ' + esc(used) : ''}</div>
+        </div>
+        <button class="btn primary elecdock-btn" data-elecread="${d.id}">＋ ${esc(t('elec_read_add'))}</button>
+      </div>`;
+    }).join('')}
+    </div>
+  </div>`;
 }
 
 /** On the main screen: prepaid meters about to run out. */
@@ -2107,9 +2139,10 @@ function elecReadDialog(id, rid) {
   const old = rid ? (d.reads || []).find(x => x.id === rid) : null;
   if (rid && !old) return;
   const last = elecReads(d)[0];
-  openModal(`<h3>⚡ ${esc(old ? t('elec_edit_read') : t('elec_enter'))} — ${esc(d.name || '')}</h3>
+  openModal(`<h3>⚡ ${esc(old ? t('elec_edit_read') : t('elec_read_add'))} — ${esc(d.name || '')}</h3>
     <div class="two">${field(t('elec_value') + ' (kWh)', `<input id="er-v" inputmode="decimal" value="${old ? esc(String(old.v).replace('.', ',')) : ''}" placeholder="${last ? esc(String(last.v).replace('.', ',')) : '0'}">`)}${field(t('elec_date'), `<input id="er-d" type="date" value="${dateIn(old ? old.at : Date.now())}">`)}</div>
     ${field(t('net_pay_note'), `<input id="er-n" value="${old ? esc(old.note || '') : ''}">`)}
+    <div class="field"><span>📷 ${esc(t('elec_read_photo'))}</span><div class="photos" id="er-ph"></div></div>
     <p class="small" id="er-u"></p>
     <div class="mbtns"><button class="btn" data-act="mclose">${esc(t('cancel'))}</button><button class="btn primary" id="m-ok">✓ ${esc(t('save'))}</button></div>`,
   root => {
@@ -2120,6 +2153,26 @@ function elecReadDialog(id, rid) {
       u.textContent = n !== null && prev ? (() => { const used = elecUsed(d, prev, { v: n }); return used >= 0 ? '📉 ' + t('elec_since', { used: elecFmt(used), date: netDate(prev.at) }) : '⬆ +' + elecFmt(-used) + ' ' + t(elecDown(d) ? 'elec_topup' : 'elec_reset'); })() : '';
     };
     v.addEventListener('input', upd); dt.addEventListener('input', upd); dt.addEventListener('change', upd);
+    let ph = old && old.ph ? old.ph : '';
+    let newPh = '';
+    const box = root.querySelector('#er-ph');
+    const drawPh = () => {
+      box.innerHTML = (ph && N.photoUrl(ph) ? `<div class="ph-item"><img src="${esc(N.photoUrl(ph))}" alt=""><button type="button" class="ph-del" id="er-phdel">✕</button></div>` : '')
+        + (isDesktop() ? '' : `<button type="button" class="ph-add" data-erpick="camera">📷<small>${esc(t('camera'))}</small></button>`)
+        + `<button type="button" class="ph-add" data-erpick="gallery">🖼️<small>${esc(t('gallery'))}</small></button>`;
+      box.querySelectorAll('[data-erpick]').forEach(b => b.onclick = async ev => {
+        ev.stopPropagation();
+        const ids = await nat('pickPhoto', b.dataset.erpick);
+        if (Array.isArray(ids) && ids.length) {
+          if (newPh && newPh !== ids[0]) N.deletePhotoLocal(newPh);
+          ph = newPh = ids[0];
+          drawPh();
+        }
+      });
+      const del = box.querySelector('#er-phdel');
+      if (del) del.onclick = ev => { ev.stopPropagation(); if (newPh) { N.deletePhotoLocal(newPh); newPh = ''; } ph = ''; drawPh(); };
+    };
+    drawPh();
     setTimeout(() => v.focus(), 50);
     upd();
     root.querySelector('#m-ok').onclick = () => {
@@ -2129,8 +2182,13 @@ function elecReadDialog(id, rid) {
       c.reads = c.reads || [];
       const at = dateOut(dt.value) || Date.now();
       const note = root.querySelector('#er-n').value.trim();
-      if (old) { const x = c.reads.find(y => y.id === rid); if (x) { x.v = n; x.at = at; x.note = note; x.ua = Date.now(); } }
-      else c.reads.push({ id: uid(), v: n, at, note, by: S.me.name || '', ca: Date.now() });
+      if (old) { const x = c.reads.find(y => y.id === rid); if (x) { x.v = n; x.at = at; x.note = note; x.ph = ph || ''; x.ua = Date.now(); } }
+      else c.reads.push({ id: uid(), v: n, at, note, ph: ph || '', by: S.me.name || '', ca: Date.now() });
+      // The reading photo syncs like every other photo: it must be listed in d.photos. Old photos are never removed here.
+      c.photos = c.photos || [];
+      if (ph && !c.photos.includes(ph)) c.photos.push(ph);
+      if (newPh && !S.photoUp.includes(newPh)) S.photoUp.push(newPh);
+      newPh = '';
       putDoc(c);
       closeModal();
       render();
@@ -2351,7 +2409,7 @@ function maintServDelete(id, sid) {
 
 document.addEventListener('click', async e => {
   if (e.target.closest('a[data-ext]')) return;
-  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-restore],[data-archopen],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn],[data-maintdone],[data-maintedit],[data-maintdel],[data-mtype],[data-mevery],[data-mwarn]');
+  const el = e.target.closest('[data-act],[data-tab],[data-open],[data-toggle],[data-cat],[data-tcat],[data-hist],[data-newkind],[data-sub],[data-rem],[data-pick],[data-delphoto],[data-favphoto],[data-view],[data-newlst],[data-lang],[data-lists],[data-lists-tab],[data-editlst],[data-dellst],[data-map],[data-dial],[data-mkadmin],[data-restore],[data-archopen],[data-fullrights],[data-rmmember],[data-trash],[data-copycode],[data-netpay],[data-netst],[data-netpaydel],[data-netrem],[data-netq],[data-elecread],[data-elechist],[data-elecedit],[data-elecdel],[data-electype],[data-elecwarn],[data-maintdone],[data-maintedit],[data-maintdel],[data-mtype],[data-mevery],[data-mwarn]');
   if (!el) return;
   const ds = el.dataset;
   const top = ui.stack[ui.stack.length - 1];
@@ -2371,6 +2429,7 @@ document.addEventListener('click', async e => {
   if (ds.netpay) { e.stopPropagation(); netPayDialog(ds.netpay); return; }
   if (ds.netst) { e.stopPropagation(); const [i, k, v] = ds.netst.split('|'); if (S.docs[i]) netSetStatus(i, k, v); return; }
   if (ds.elecread) { e.stopPropagation(); elecReadDialog(ds.elecread); return; }
+  if (ds.elechist) { e.stopPropagation(); ui.elecOpen = ui.elecOpen || {}; ui.elecOpen[ds.elechist] = !ui.elecOpen[ds.elechist]; render(); return; }
   if (ds.maintdone) { e.stopPropagation(); maintServDialog(ds.maintdone); return; }
   if (ds.maintedit) { e.stopPropagation(); const [i, r] = ds.maintedit.split('|'); maintServDialog(i, r); return; }
   if (ds.maintdel) { e.stopPropagation(); const [i, r] = ds.maintdel.split('|'); if (S.docs[i]) maintServDelete(i, r); return; }

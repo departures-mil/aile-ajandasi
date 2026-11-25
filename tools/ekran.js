@@ -23,6 +23,8 @@ function sample(lang) {
   add({ id: 's1', kind: 'shop', title: 'Süt', qty: '2', cat: 'cat_market' });
   add({ id: 's2', kind: 'shop', title: 'Ekmek', cat: 'cat_bakery' });
   add({ id: 's3', kind: 'shop', title: 'Ağrı kesici', cat: 'cat_pharmacy' });
+  add({ id: 'e1', kind: 'elec', name: 'Ev', title: 'Ev', meterNo: '0105101668413', mType: 'down', warnDays: 3, notes: '',
+    reads: [{ id: 'r1', v: 413.43, at: at(-1, 12), by: 'Milen', ca: now - D }, { id: 'r2', v: 431.9, at: at(-4, 12), by: 'Annem', ca: now - 4 * D }, { id: 'r3', v: 250, at: at(-9, 12), note: 'Yükleme', by: 'Milen', ca: now - 9 * D }, { id: 'r4', v: 92.5, at: at(-12, 12), by: 'Milen', ca: now - 12 * D }] });
   [['pharmacy', '💊'], ['market', '🛒'], ['bakery', '🍞'], ['other', '📦']].forEach(([k, ic], i) => { docs['cat_' + k] = { id: 'cat_' + k, kind: 'lst', list: 'cat', key: k, icon: ic, name: '', order: i, def: true, ca: now, ua: now }; });
   return {
     docs, dirty: {}, delQ: [], photoUp: [], photoDel: [], tx: {}, alx: {},
@@ -43,6 +45,10 @@ const shots = [
   { name: 'tr-falcon-dark-alisveris', lang: 'tr', theme: 'dark', scheme: 'falcon', tab: 'shop' },
   { name: 'tr-telefon-falcon-dark', lang: 'tr', theme: 'dark', scheme: 'falcon', phone: true },
   { name: 'ar-telefon-klasik', lang: 'ar', theme: 'light', scheme: 'klasik', phone: true },
+  { name: 'tr-telefon-elektrik', lang: 'tr', theme: 'dark', scheme: 'falcon', tab: 'elec', phone: true },
+  { name: 'ar-telefon-elektrik', lang: 'ar', theme: 'light', scheme: 'falcon', tab: 'elec', phone: true, hist: true },
+  { name: 'tr-telefon-okuma-ekle', lang: 'tr', theme: 'light', scheme: 'falcon', tab: 'elec', phone: true, readDlg: true },
+  { name: 'en-masaustu-elektrik', lang: 'en', theme: 'light', scheme: 'klasik', tab: 'elec' },
   { name: 'tr-tasinabilir-kopru', lang: 'tr', theme: 'dark', scheme: 'falcon', mode: 'portable' },
   { name: 'tr-eski-telefon-kopru', lang: 'tr', theme: 'light', scheme: 'falcon', phone: true, legacyAndroid: true },
   { name: 'tr-ilk-acilis-firebase', lang: 'tr', theme: 'dark', scheme: 'falcon', onboarding: true }
@@ -60,7 +66,7 @@ const shots = [
     await page.addInitScript(({ s, data }) => {
       const set = (k, v) => localStorage.setItem('fc.' + k, JSON.stringify(v));
       set('lang', s.lang); set('theme', s.theme); set('scheme', s.scheme);
-      if (!s.onboarding) { set('onboarding.done', true); set('whatsnew.seen', '5.7.0'); }
+      if (!s.onboarding) { set('onboarding.done', true); set('whatsnew.seen', s.ver); }
       const json = s.onboarding ? '' : JSON.stringify(data);
       const cb = (id, v) => setTimeout(() => window.__cb(id, JSON.stringify(v)), 20);
       const A = {
@@ -78,11 +84,13 @@ const shots = [
         const st = { fullscreen: true, half: false };
         window.fcHost = { kind: 'electron', platform: 'win32', version: '5.7.0', window: { minimize: async () => {}, half: async () => {}, toggleFullscreen: async () => {}, close: async () => {}, getState: async () => st, onState: () => () => {} }, update: { channel: s.mode === 'portable' ? 'win-setup' : 'win-app', applyPatch: async () => 'restarting', installFull: async () => 'restarting' } };
       }
-    }, { s, data: sample(s.lang) });
+    }, { s: Object.assign({ ver: require('../package.json').version }, s), data: sample(s.lang) });
     await page.goto(URL0);
     await page.waitForTimeout(1600);
     if (s.page === 'settings') { await page.evaluate(() => push({ type: 'settings' })); await page.waitForTimeout(600); }
     if (s.tab) { await page.evaluate((t) => { document.querySelector('[data-tab="' + t + '"]').click(); }, s.tab); await page.waitForTimeout(400); }
+    if (s.hist) { await page.evaluate(() => document.querySelector('[data-elechist]').click()); await page.waitForTimeout(300); }
+    if (s.readDlg) { await page.evaluate(() => document.querySelector('.elecdock [data-elecread]').click()); await page.waitForTimeout(300); await page.fill('#er-v', '401,2'); await page.waitForTimeout(200); }
     if (s.onboarding) { await page.waitForTimeout(800); for (let i = 0; i < 2; i++) { await page.click('.fc-onboarding .modal-footer .btn.primary'); await page.waitForTimeout(250); } }
     await page.screenshot({ path: path.join(OUT, s.name + '.png'), fullPage: !!s.page });
     await ctx.close();

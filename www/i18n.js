@@ -342,7 +342,7 @@ Object.assign(I18N.tr, {
   elec_type: 'Sayaç türü', elec_t_down: 'Ön ödemeli (kalan kWh)', elec_t_up: 'Normal (toplam kWh)',
   elec_type_note_down: 'Sayaç kalan elektriği gösterir; değer azaldıkça harcanmış olur, artarsa yükleme sayılır.',
   elec_type_note_up: 'Sayaç toplam tüketimi gösterir; değer arttıkça harcanmış olur.',
-  elec_warn: 'Kaç gün kala uyarılsın', elec_need_value: 'Geçerli bir değer yazın.', elec_confirm_del: 'Bu okunan değer silinsin mi?'
+  elec_warn: 'Kaç gün kala uyarılsın', elec_need_value: 'Geçerli bir değer yazın.', elec_confirm_del: 'Bu okunan değer silinsin mi?', elec_read_add: 'Okuma Ekle', elec_dock: 'Sayaç okuma', elec_dock_used: 'son okumada {used} kWh ({days} gün)', elec_read_photo: 'Okuma anının fotoğrafı (isteğe bağlı)'
 });
 Object.assign(I18N.en, {
   tab_elec: 'Electricity', new_elec: 'New electricity meter', edit_elec: 'Electricity meter', elec_add: 'Add electricity meter',
@@ -358,7 +358,7 @@ Object.assign(I18N.en, {
   elec_type: 'Meter type', elec_t_down: 'Prepaid (remaining kWh)', elec_t_up: 'Normal (total kWh)',
   elec_type_note_down: 'The meter shows the electricity left; a lower value means usage, a higher value counts as a top-up.',
   elec_type_note_up: 'The meter shows total usage; a higher value means usage.',
-  elec_warn: 'Warn how many days before it runs out', elec_need_value: 'Enter a valid value.', elec_confirm_del: 'Delete this reading?'
+  elec_warn: 'Warn how many days before it runs out', elec_need_value: 'Enter a valid value.', elec_confirm_del: 'Delete this reading?', elec_read_add: 'Add Reading', elec_dock: 'Meter reading', elec_dock_used: '{used} kWh at last reading ({days} days)', elec_read_photo: 'Photo at reading (optional)'
 });
 Object.assign(I18N.ar, {
   tab_elec: 'الكهرباء', new_elec: 'عداد كهرباء جديد', edit_elec: 'عداد الكهرباء', elec_add: 'إضافة عداد كهرباء',
@@ -374,7 +374,7 @@ Object.assign(I18N.ar, {
   elec_type: 'نوع العداد', elec_t_down: 'مسبق الدفع (المتبقي)', elec_t_up: 'عادي (الإجمالي)',
   elec_type_note_down: 'يعرض العداد الكهرباء المتبقية؛ نقصان القيمة استهلاك، وزيادتها تُحسب شحناً.',
   elec_type_note_up: 'يعرض العداد الاستهلاك الإجمالي؛ زيادة القيمة استهلاك.',
-  elec_warn: 'التنبيه قبل النفاد بكم يوم', elec_need_value: 'اكتب قيمة صحيحة.', elec_confirm_del: 'حذف هذه القراءة؟'
+  elec_warn: 'التنبيه قبل النفاد بكم يوم', elec_need_value: 'اكتب قيمة صحيحة.', elec_confirm_del: 'حذف هذه القراءة؟', elec_read_add: 'إضافة قراءة', elec_dock: 'قراءة العداد', elec_dock_used: 'استُهلك {used} كيلوواط ساعة خلال {days} يوم', elec_read_photo: 'صورة وقت القراءة (اختياري)'
 });
 Object.assign(I18N.tr, {
   tab_maint: 'Bakım', new_maint: 'Yeni bakım kaydı', edit_maint: 'Bakım kaydı', maint_add: 'Bakım takibi ekle',
