@@ -12,7 +12,7 @@ Eski kurulumlar ne yapar:
       programını (GitHub Releases, win-setup) indirir ve kurar; kurulu sürüm veriyi kopyalar.
   - Telefon APK 5.2: aynı dosyayı GitHub'dan, APK 4.7: ailenin Firebase'inden okur (masaüstü 5.1+ oraya aktarır);
     yalnız www/* dosyalarını alır → yeni arayüz eski APK'da açılır ve yeni APK'nın bağlantısını gösterir (aynı imza, veri kalır).
-İmza anahtarı (keys/update-private.pem) depoda YOK; geliştiricinin bilgisayarında: C:\\Claude Programlarım\\_Anahtarlar\\Ajandam
+İmza anahtarı (keys/update-private.pem) depoda YOK; kullanıcının bilgisayarında: geliştiricinin bilgisayarındaki anahtar klasörü
 """
 import argparse, gzip, hashlib, json, os, subprocess, sys, time, urllib.request
 
@@ -76,7 +76,7 @@ def main():
         sys.path.insert(0, os.path.join(ROOT, 'tools'))
         import publish  # cryptography gerekir
         if not os.path.exists(a.key):
-            raise SystemExit('İmza anahtarı yok: ' + a.key + '  (C:\\Claude Programlarım\\_Anahtarlar\\Ajandam\\update-private.pem → keys/)')
+            raise SystemExit('İmza anahtarı yok: ' + a.key + '  (geliştiricinin bilgisayarındaki anahtar klasörü → keys/)')
         sig = publish.sign(a.key, gz)
     os.makedirs(a.out, exist_ok=True)
     for f in os.listdir(a.out):

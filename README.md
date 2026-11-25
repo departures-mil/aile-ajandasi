@@ -9,7 +9,7 @@
   `%APPDATA%\Ajandam\eski-konum.json`'daki yerden veriyi KOPYALAR (orijinale dokunmaz) ya da Ayarlar → "Eski Ajandam klasöründen veri al".
 - Ortak arayüz `www/` (çekirdek `www/cekirdek/`, kabuk `www/kabuk.js`); `node tools/hazirla.js` → `desktop/www` + Android assets (depoda tutulmaz).
 - Eşitleme kuralı: hiçbir kayıt silinmez/üstüne yazılmaz — başka cihazda silinen → Arşiv, çakışma → yedek (Ayarlar → Arşiv ve yedekler).
-- **Eski kanal köprüsü** (`guncelleme/`, ECDSA): yalnız ≤5.6 kurulumları için. Release'ten SONRA geliştiricinin bilgisayarında:
+- **Eski kanal köprüsü** (`guncelleme/`, ECDSA): yalnız ≤5.6 kurulumları için. Release'ten SONRA kullanıcının bilgisayarında:
   `python tools/kopru.py --firebase` (anahtar `keys/update-private.pem`, depoda yok).
 - APK imza şifresi depoda YOK: ortam değişkeni `AJANDAM_KS_PASS` (+ `AJANDAM_KS_FILE`, `AJANDAM_KEY_ALIAS`) ya da gitignore'lu
   `android/keystore.properties`; CI secret'ları `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASS`, `ANDROID_KEY_ALIAS`.

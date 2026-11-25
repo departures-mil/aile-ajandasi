@@ -16,7 +16,7 @@ android {
 
     // İmza: şifreler DEPODA YOK. Sıra: ortam değişkenleri (CI: AJANDAM_KS_FILE / AJANDAM_KS_PASS / AJANDAM_KEY_ALIAS /
     // AJANDAM_KEY_PASS) → depo dışı android/keystore.properties (gitignore'da: storeFile=, storePassword=, keyAlias=, keyPassword=).
-    // Anahtar dosyası sahibin bilgisayarında: C:\Claude Programlarım\_Anahtarlar\Ajandam
+    // Anahtar dosyası sahibin bilgisayarında: geliştiricinin bilgisayarındaki anahtar klasörü
     def ksProps = new Properties()
     def ksPropsFile = rootProject.file("keystore.properties")
     if (ksPropsFile.exists()) { ksPropsFile.withInputStream { ksProps.load(it) } }

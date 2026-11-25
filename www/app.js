@@ -533,7 +533,7 @@ async function makeAdmin(memberUid) {
   saveNow();
 }
 
-/** The user's own other devices get full rights automatically: their computers and devices with the main phone's name. */
+/** The owner's own other devices get full rights automatically: their computers and devices with the main phone's name. */
 async function autoFullRights() {
   const mine = foldText((S.sync.members.find(m => m.uid === S.sync.uid) || {}).name || S.me.name);
   const want = S.sync.members.filter(m => m.uid !== S.sync.uid && !(S.sync.admins || []).includes(m.uid) && !(S.sync.notAdmins || []).includes(m.uid)

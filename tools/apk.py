@@ -3,7 +3,7 @@
   (şifre "-" ise AJANDAM_KS_PASS ortam değişkeninden okunur; şifreyi komut satırına/depoya yazmayın)
 aapt2 (build-tools 34), android.jar (platform 34), d8 (r8.jar) ve apksig ilk çalıştırmada ~/.cache/og-apk/ altına iner.
 Sürüm android/app/build.gradle'dan (versionCode = NATIVE_CODE, versionName) okunur; android/app/src/main/assets/www, www/ klasöründen yenilenir.
-İmza anahtarı depoda DEĞİL: C:\\Claude Programlarım\\_Anahtarlar\\Ajandam (alias ajandam).
+İmza anahtarı depoda DEĞİL: geliştiricinin bilgisayarındaki anahtar klasörü (alias ajandam).
 """
 import glob, os, re, shutil, struct, subprocess, sys, tempfile, urllib.request, zipfile
 

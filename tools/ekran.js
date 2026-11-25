@@ -24,12 +24,12 @@ function sample(lang) {
   add({ id: 's2', kind: 'shop', title: 'Ekmek', cat: 'cat_bakery' });
   add({ id: 's3', kind: 'shop', title: 'Ağrı kesici', cat: 'cat_pharmacy' });
   add({ id: 'e1', kind: 'elec', name: 'Ev', title: 'Ev', meterNo: '0105101668413', mType: 'down', warnDays: 3, notes: '',
-    reads: [{ id: 'r1', v: 413.43, at: at(-1, 12), by: 'Deniz', ca: now - D }, { id: 'r2', v: 431.9, at: at(-4, 12), by: 'Annem', ca: now - 4 * D }, { id: 'r3', v: 250, at: at(-9, 12), note: 'Yükleme', by: 'Deniz', ca: now - 9 * D }, { id: 'r4', v: 92.5, at: at(-12, 12), by: 'Deniz', ca: now - 12 * D }] });
+    reads: [{ id: 'r1', v: 413.43, at: at(-1, 12), by: 'Ahmet', ca: now - D }, { id: 'r2', v: 431.9, at: at(-4, 12), by: 'Annem', ca: now - 4 * D }, { id: 'r3', v: 250, at: at(-9, 12), note: 'Yükleme', by: 'Ahmet', ca: now - 9 * D }, { id: 'r4', v: 92.5, at: at(-12, 12), by: 'Ahmet', ca: now - 12 * D }] });
   [['pharmacy', '💊'], ['market', '🛒'], ['bakery', '🍞'], ['other', '📦']].forEach(([k, ic], i) => { docs['cat_' + k] = { id: 'cat_' + k, kind: 'lst', list: 'cat', key: k, icon: ic, name: '', order: i, def: true, ca: now, ua: now }; });
   return {
     docs, dirty: {}, delQ: [], photoUp: [], photoDel: [], tx: {}, alx: {},
-    me: { id: 'dme', name: 'Deniz' }, settings: { lang, onlyMine: false, showDone: false },
-    sync: { enabled: true, apiKey: 'AIzaSyDEMO', projectId: 'aile-demo', fid: 'ABCDE23456', familyName: 'Ailemiz', adminUid: 'u1', uid: 'u1', members: [{ uid: 'u1', name: 'Deniz' }, { uid: 'u2', name: 'Annem' }], lastSync: now - 120000, lastError: '' },
+    me: { id: 'dme', name: 'Ahmet' }, settings: { lang, onlyMine: false, showDone: false },
+    sync: { enabled: true, apiKey: 'AIzaSyDEMO', projectId: 'aile-demo', fid: 'ABCDE23456', familyName: 'Ailemiz', adminUid: 'u1', uid: 'u1', members: [{ uid: 'u1', name: 'Ahmet' }, { uid: 'u2', name: 'Annem' }], lastSync: now - 120000, lastError: '' },
     arsiv: [{ at: now - 2 * H, src: 'lan', d: { id: 'x1', kind: 'task', title: 'Eski görev (başka cihazda silindi)', ua: now - 3 * D } }],
     lanBackup: [{ at: now - 5 * H, src: 'cloud', d: { id: 't1', kind: 'task', title: 'Faturaları öde (eski hal)', ua: now - 4 * D } }]
   };
