@@ -385,6 +385,8 @@ const asyncCalls = {
 };
 
 /* ---------- yerel ağ eşitleme (internetsiz, aynı Wi‑Fi) ---------- */
+// Çevrimdışı yapay zekâ (çeviri) — paketler kullanıcı klasörüne bir kez iner (ortak çekirdek web/yerel-zeka)
+try { require('./cekirdek/electron/yerel-zeka/fc-yerel-zeka-main').install({ app, ipcMain }); } catch (e) { console.error('yerel-zeka', e); }
 const lan = require('./lan-server');
 Object.assign(syncCalls, lan.syncCalls, { hasPhotoLocal: id => fs.existsSync(photoFile(id)) });
 Object.assign(asyncCalls, lan.asyncCalls);

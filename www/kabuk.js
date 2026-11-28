@@ -249,6 +249,12 @@
       grid = ui.el('div.settings-grid.aj-core');
       var cards = [];
       if (DESK && INFO && INFO.mode === 'installed' && typeof A.importLegacy === 'function') cards.push(legacyCard());
+      if (window.FCYZ && FCYZ.available()) { // çevrimdışı yapay zekâ: internetsiz çeviri paketleri
+        var yz = document.createElement('div'), lg = document.documentElement.lang || 'tr';
+        yz.className = 'card'; yz.id = 'yerelZeka';
+        var h = document.createElement('h3'); h.textContent = FCYZ.title({ lang: lg }); yz.appendChild(h);
+        yz.appendChild(FCYZ.card({ lang: lg, packs: ['llm', 'mt'] })); cards.push(yz);
+      }
       FC.settings.build(grid, { cards: cards, usage: { firebase: true, ai: false, project: function () { try { return S.sync.enabled ? S.sync.projectId : ''; } catch (e) { return ''; } } }, about: { version: VER }, onboarding: OB });
     }
     host.appendChild(grid);

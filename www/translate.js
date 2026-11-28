@@ -140,6 +140,14 @@ async function translateBatch(texts, lang) {
     if (o === null) break;
   }
   while (out.length < texts.length) out.push(null);
+  // İnternet yoksa: masaüstünde çevrimdışı yapay zekâ (TranslateGemma / NLLB) kuruluysa onunla
+  if (out.some(o => o === null) && window.FCYZ && await FCYZ.ready('mt')) {
+    for (let i = 0; i < texts.length; i++) {
+      if (out[i] !== null) continue;
+      try { const r = await FCYZ.translate(texts[i], 'auto', lang, { domain: 'genel' }); out[i] = r && r.text ? String(r.text).trim() : null; } catch (e) { out[i] = null; }
+      if (out[i] === null) break;
+    }
+  }
   return out;
 }
 

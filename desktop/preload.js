@@ -14,6 +14,8 @@ try {
   }
   require('./cekirdek/electron/fc-preload.js');
 } catch (e) { window.__fcPreloadError = String(e && e.message || e); }
+// Çevrimdışı yapay zekâ (çeviri) köprüsü: window.fcYerelZeka
+try { require('./cekirdek/electron/yerel-zeka/fc-yerel-zeka-preload').expose(electron.contextBridge, ipcRenderer); } catch (e) { /* yoksay */ }
 
 const call = (name, ...args) => ipcRenderer.sendSync('sync', name, ...args);
 const later = name => (cb, ...args) => {
